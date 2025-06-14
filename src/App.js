@@ -12,16 +12,7 @@ const countriesRouter = require('./router/countriesAPI');
 // const flight = require('./router/flightStatus');
 const app = express();
 const port = process.env.PORT || 5000;
-app.use(express.json());
 
-app.use(router);
-app.use(jwtapp);
-app.use(adminAPI);
-app.use(airportAPI);
-app.use(priceAPI);
-app.use(blogRouter);
-app.use(countriesRouter);
-// app.use(flight);
 app.use(
   cors({
     origin: [
@@ -34,4 +25,16 @@ app.use(
 app.listen(port, () => {
   console.log(`we are listening from port ${port}`);
 });
+
+app.use(express.json());
+
+app.use(router);
+app.use(jwtapp);
+app.use(adminAPI);
+app.use(airportAPI);
+app.use(priceAPI);
+app.use(blogRouter);
+app.use(countriesRouter);
+// app.use(flight);
+
 
