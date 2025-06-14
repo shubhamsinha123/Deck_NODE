@@ -24,7 +24,7 @@ app.use(countriesRouter);
 // app.use(flight);
 app.use(
   cors({
-    origin: ['http://localhost:3000', 'https://deck-api-g59h.onrender.com'],
+    origin: ['http://localhost:3000', 'https://deckdigital.netlify.app'],
   }),
 );
 app.listen(port, () => {
