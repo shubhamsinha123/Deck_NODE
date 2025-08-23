@@ -18,7 +18,8 @@ app.use(
     origin: [
       'http://localhost:3000',
       'https://deckdigital.netlify.app',
-      'https://deck-api-g59h.onrender.com'
+      'https://deck-api-g59h.onrender.com',
+      'https://deck-ui.onrender.com',
     ]
   })
 );
