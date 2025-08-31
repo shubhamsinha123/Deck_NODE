@@ -73,6 +73,14 @@ const schema = new mognoose.Schema({
         type: String,
         required: false,
       },
+      likes: {
+        type: Number,
+        required: false,
+      },
+      isEdited: {
+        type: Boolean,
+        required: false,
+      }
     },
   ],
 });
