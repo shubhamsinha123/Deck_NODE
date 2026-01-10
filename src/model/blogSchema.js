@@ -80,7 +80,7 @@ const schema = new mognoose.Schema({
       isEdited: {
         type: Boolean,
         required: false,
-      }
+      },
     },
   ],
 });
