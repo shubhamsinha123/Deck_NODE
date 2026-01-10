@@ -34,9 +34,13 @@ routes.forEach((route) => app.use(route));
 // app.use(flightStatus);
 app.use(
   cors({
-    origin: 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      'https://deck-api-g59h.onrender.com',
+      'https://deck-ui.onrender.com',
+    ],
   }),
 );
 app.listen(port, () => {
-  console.log(`we are listening from port ${port}`);
+  console.warn(`we are listening from port ${port}`);
 });
