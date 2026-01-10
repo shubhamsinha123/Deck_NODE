@@ -14,6 +14,19 @@ const bookingAPI = require('./router/bookingAPI');
 // const flightStatus = require('./router/flightStatus');
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Apply middleware BEFORE routes
+app.use(express.json());
+app.use(
+  cors({
+    origin: [
+      'http://localhost:3000',
+      'https://deck-api-g59h.onrender.com',
+      'https://deck-ui.onrender.com',
+    ],
+  }),
+);
+
 const routes = [
   userAPI,
   jwtapi,
@@ -27,16 +40,6 @@ const routes = [
 
 routes.forEach((route) => app.use(route));
 // app.use(flightStatus);
-app.use(express.json());
-app.use(
-  cors({
-    origin: [
-      'http://localhost:3000',
-      'https://deck-api-g59h.onrender.com',
-      'https://deck-ui.onrender.com',
-    ],
-  }),
-);
 app.listen(port, () => {
   console.warn(`we are listening from port ${port}`);
 });
