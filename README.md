@@ -1,1 +1,4 @@
-# Deck_NODE
+Docker commands
+------------------------------
+docker images
+docker build -t {imagename} .
