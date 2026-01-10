@@ -2,12 +2,6 @@
 const express = require('express');
 require('./db/data');
 const cors = require('cors');
-
-const app = express();
-const port = process.env.PORT || 5000;
-
-app.use(express.json());
-
 // API Routes
 const userAPI = require('./router/userAPI');
 const jwtapi = require('./router/jwtapi');
@@ -18,7 +12,8 @@ const blogAPI = require('./router/blogAPI');
 const countriesAPI = require('./router/countriesAPI');
 const bookingAPI = require('./router/bookingAPI');
 // const flightStatus = require('./router/flightStatus');
-
+const app = express();
+const port = process.env.PORT || 5000;
 const routes = [
   userAPI,
   jwtapi,
@@ -32,6 +27,7 @@ const routes = [
 
 routes.forEach((route) => app.use(route));
 // app.use(flightStatus);
+app.use(express.json());
 app.use(
   cors({
     origin: [
