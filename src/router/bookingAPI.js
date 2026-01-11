@@ -101,9 +101,9 @@ router.get('/bookings/user/:email', async (req, res) => {
     }
 
     res.status(200).json({
-      success: true,
-      count: bookings.length,
       data: bookings,
+      message: 'Bookings fetched successfully',
+      status: STATUS.SUCCESS,
     });
   } catch (error) {
     res.status(500).json({
@@ -123,8 +123,8 @@ router.get('/bookings/flight/:flightNumber', async (req, res) => {
 
     if (bookings.length === 0) {
       return res.status(404).json({
-        success: false,
         message: 'No bookings found for this flight',
+        status: STATUS.NOT_FOUND,
       });
     }
 
@@ -135,9 +135,9 @@ router.get('/bookings/flight/:flightNumber', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: 'Error fetching bookings',
       error: error.message,
+      message: 'Error fetching bookings',
+      status: STATUS.ERROR,
     });
   }
 });
@@ -155,9 +155,9 @@ router.get('/bookings/status/:status', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: 'Error fetching bookings',
       error: error.message,
+      message: 'Error fetching bookings',
+      status: STATUS.ERROR,
     });
   }
 });
@@ -194,96 +194,78 @@ router.put('/bookings/:id', async (req, res) => {
   }
 });
 
-// Update booking status
-router.patch('/bookings/:id/status', async (req, res) => {
+// Update booking by email with operations
+router.patch('/update-travel-records/:email', async (req, res) => {
   try {
-    const { bookingStatus } = req.body;
+    const { email } = req.params;
+    const operations = req.body;
 
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      req.params.id,
-      { bookingStatus },
+    // Validate operations array
+    if (!Array.isArray(operations) || operations.length === 0) {
+      return res.status(400).json({
+        data: null,
+        message: 'Request body must be a non-empty array of operations',
+        status: STATUS.FAILURE,
+      });
+    }
+
+    // Find booking by email
+    const booking = await Booking.findOne({ userEmail: email });
+
+    if (!booking) {
+      return res.status(404).json({
+        data: null,
+        message: 'Booking not found for this email',
+        status: STATUS.FAILURE,
+      });
+    }
+
+    // Process operations
+    const updateData = {};
+    operations.forEach((operation) => {
+      const { keyName, op, updatedData } = operation;
+
+      if (!keyName || !op || !updatedData) {
+        throw new Error('Each operation must have keyName, op, and updatedData');
+      }
+
+      // Check if keyName exists in the booking object
+      if (!(keyName in booking)) {
+        throw new Error(`Field '${keyName}' not found in booking record`);
+      }
+
+      if (op === '/replace') {
+        Object.assign(updateData, updatedData);
+      } else {
+        throw new Error(`Unsupported operation: ${op}. Currently only /replace is supported`);
+      }
+    });
+
+    // Update booking with the processed data
+    const updatedBooking = await Booking.findOneAndUpdate(
+      { userEmail: email },
+      updateData,
       { new: true, runValidators: true },
     );
 
-    if (!updatedBooking) {
-      return res.status(404).json({
-        data: null,
-        message: 'Booking not found',
-        status: STATUS.FAILURE,
-      });
-    }
-
     res.status(200).json({
       data: updatedBooking,
-      message: 'Booking status updated successfully',
+      message: 'Booking updated successfully',
       status: STATUS.SUCCESS,
     });
   } catch (error) {
-    res.status(400).json({
-      data: null,
-      message: 'Error updating booking status',
-      status: STATUS.FAILURE,
-      error: error.message,
-    });
-  }
-});
-
-// Update booking step
-router.patch('/bookings/:id/step', async (req, res) => {
-  try {
-    const { userEntryStep } = req.body;
-
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      req.params.id,
-      { userEntryStep },
-      { new: true, runValidators: true },
-    );
-
-    if (!updatedBooking) {
+    // Check if error is about field not found
+    if (error.message.includes('not found in booking record')) {
       return res.status(404).json({
         data: null,
-        message: 'Booking not found',
+        message: error.message,
         status: STATUS.FAILURE,
       });
     }
 
-    res.status(200).json({
-      data: updatedBooking,
-      message: 'Booking step updated successfully',
-      status: STATUS.SUCCESS,
-    });
-  } catch (error) {
     res.status(400).json({
       data: null,
-      message: 'Error updating booking step',
-      status: STATUS.FAILURE,
-      error: error.message,
-    });
-  }
-});
-
-// Delete a booking
-router.delete('/bookings/:id', async (req, res) => {
-  try {
-    const deletedBooking = await Booking.findByIdAndDelete(req.params.id);
-
-    if (!deletedBooking) {
-      return res.status(404).json({
-        data: null,
-        message: 'Booking not found',
-        status: STATUS.FAILURE,
-      });
-    }
-
-    res.status(200).json({
-      data: deletedBooking,
-      message: 'Booking deleted successfully',
-      status: STATUS.SUCCESS,
-    });
-  } catch (error) {
-    res.status(500).json({
-      data: null,
-      message: 'Error deleting booking',
+      message: 'Error updating booking',
       status: STATUS.FAILURE,
       error: error.message,
     });

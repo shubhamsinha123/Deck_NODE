@@ -83,6 +83,14 @@ const flightDetailsSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  flightDepartureCity: {
+    type: String,
+    required: true,
+  },
+  flightArrivalCity: {
+    type: String,
+    required: true,
+  },
   flightDate: {
     type: String,
     required: true,
@@ -165,6 +173,15 @@ const bookingSchema = new mongoose.Schema({
   bookingStatus: {
     type: String,
     required: true,
+  },
+  isPassword: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  password: {
+    type: String,
+    required: false,
   },
 });
 
