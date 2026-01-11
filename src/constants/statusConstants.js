@@ -4,6 +4,7 @@ const STATUS = {
   FAILURE: 'FAILURE',
   PENDING: 'PENDING',
   ERROR: 'ERROR',
+  NOT_FOUND: 'NOT FOUND',
 };
 
 module.exports = STATUS;
