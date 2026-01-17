@@ -11,11 +11,7 @@ blogRouter.post('/postBlog', async (req, res) => {
     const postBatchResponseData = await blogSchema.insertMany(
       blogArray,
     );
-    res.status(201).send({
-      data: postBatchResponseData,
-      message: 'Blog data created successfully.',
-      status: 'SUCCESS',
-    });
+    res.send(postBatchResponseData);
   } catch (e) {
     res.status(400).send(e);
   }
@@ -24,11 +20,7 @@ blogRouter.post('/postBlog', async (req, res) => {
 blogRouter.get('/getBlog', async (req, res) => {
   try {
     const getBlog = await blogSchema.find({});
-    res.status(200).send({
-      data: getBlog,
-      message: 'All blog data fetched successfully',
-      status: 'SUCCESS',
-    });
+    res.status(201).send(getBlog);
   } catch (e) {
     res.status(400).send(e);
   }
@@ -41,11 +33,7 @@ blogRouter.get('/getBlog/:name', async (req, res) => {
     const getBlogSingleData = await blogSchema.find({ name });
     // const responseData = await addCitizenShip.save();
     // res.send(responseData);
-    res.status(200).send({
-      data: getBlogSingleData,
-      message: 'Blog data fetched successfully',
-      status: 'SUCCESS',
-    });
+    res.status(201).send(getBlogSingleData);
   } catch (e) {
     res.status(400).send(e);
   }
@@ -62,20 +50,16 @@ blogRouter.patch('/updateBlog/:name', async (req, res) => {
       },
     );
     if (!updatedBlog) {
-      return res.status(404).send('Blog not found');
+      return res.status(404).send('Citizen not found');
     }
 
     // res.send(updatedCitizen);
     res
-      .status(202)
+      .status(200)
       // .json({
       //   message: `record with ID ${id} got updated successfully`,
       // })
-      .send({
-        data: updatedBlog,
-        message: `record with ID ${name} got updated successfully`,
-        status: 'SUCCESS',
-      });
+      .send(updatedBlog);
   } catch (e) {
     res.status(400).send(e);
   }
@@ -86,13 +70,10 @@ blogRouter.delete('/removeBlog/:name', async (req, res) => {
     const { name } = req.params;
     const deleteBlog = await blogSchema.findOneAndDelete({ name });
     if (!deleteBlog) {
-      return res.status(404).send('Blog not found');
+      return res.status(404).send('Citizen not found');
     }
 
-    res.status(200).send({
-      message: `record with ${name} deleted successfully`,
-      status: 'SUCCESS',
-    });
+    res.send(`record with ${name} deleted successfully`);
   } catch (e) {
     res.status(400).send(e);
   }

@@ -11,6 +11,8 @@ const priceAPI = require('./router/priceAPI');
 const blogAPI = require('./router/blogAPI');
 const countriesAPI = require('./router/countriesAPI');
 const bookingAPI = require('./router/bookingAPI');
+const carAPI = require('./router/carAPI');
+const healthAPI = require('./router/healthAPI');
 // const flightStatus = require('./router/flightStatus');
 const app = express();
 const port = process.env.PORT || 5000;
@@ -36,6 +38,8 @@ const routes = [
   blogAPI,
   countriesAPI,
   bookingAPI,
+  carAPI,
+  healthAPI,
 ];
 
 routes.forEach((route) => app.use(route));
