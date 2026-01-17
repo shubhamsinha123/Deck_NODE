@@ -7,7 +7,7 @@ const Booking = require('../model/bookingSchema');
 const STATUS = require('../constants/statusConstants');
 
 // Create a new booking
-router.post('/bookings', async (req, res) => {
+router.post('/api/bookings', async (req, res) => {
   try {
     // Validate request body
     if (!req.body || Object.keys(req.body).length === 0) {
@@ -40,7 +40,7 @@ router.post('/bookings', async (req, res) => {
 });
 
 // Get all bookings
-router.get('/bookings', async (req, res) => {
+router.get('/api/bookings', async (req, res) => {
   try {
     const bookings = await Booking.find();
     res.status(200).json({
@@ -59,7 +59,7 @@ router.get('/bookings', async (req, res) => {
 });
 
 // Get a single booking by ID
-router.get('/bookings/:id', async (req, res) => {
+router.get('/api/bookings/:id', async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
 
@@ -67,7 +67,7 @@ router.get('/bookings/:id', async (req, res) => {
       return res.status(404).json({
         data: null,
         message: 'Booking not found',
-        status: STATUS.FAILURE,
+        status: STATUS.NOT_FOUND,
       });
     }
 
@@ -87,7 +87,7 @@ router.get('/bookings/:id', async (req, res) => {
 });
 
 // Get bookings by email
-router.get('/bookings/user/:email', async (req, res) => {
+router.get('/api/bookings/user/:email', async (req, res) => {
   try {
     const bookings = await Booking.find({
       userEmail: req.params.email,
@@ -95,27 +95,30 @@ router.get('/bookings/user/:email', async (req, res) => {
 
     if (bookings.length === 0) {
       return res.status(404).json({
-        success: false,
+        data: null,
         message: 'No bookings found for this email',
+        status: STATUS.NOT_FOUND,
       });
     }
 
     res.status(200).json({
       data: bookings,
+      count: bookings.length,
       message: 'Bookings fetched successfully',
       status: STATUS.SUCCESS,
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: 'Error fetching bookings',
+      data: null,
+      message: 'Error fetching bookings records.',
+      status: STATUS.FAILURE,
       error: error.message,
     });
   }
 });
 
 // Get bookings by flight number
-router.get('/bookings/flight/:flightNumber', async (req, res) => {
+router.get('/api/bookings-flight/:flightNumber', async (req, res) => {
   try {
     const bookings = await Booking.find({
       'flightDetails.flightNumber': req.params.flightNumber,
@@ -123,6 +126,7 @@ router.get('/bookings/flight/:flightNumber', async (req, res) => {
 
     if (bookings.length === 0) {
       return res.status(404).json({
+        success: false,
         message: 'No bookings found for this flight',
         status: STATUS.NOT_FOUND,
       });
@@ -135,38 +139,41 @@ router.get('/bookings/flight/:flightNumber', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      data: null,
+      message: 'Error fetching bookings records.',
+      status: STATUS.FAILURE,
       error: error.message,
-      message: 'Error fetching bookings',
-      status: STATUS.ERROR,
     });
   }
 });
 
 // Get bookings by status
-router.get('/bookings/status/:status', async (req, res) => {
+router.get('/api/bookings-status/:status', async (req, res) => {
   try {
     const { status } = req.params;
     const bookings = await Booking.find({ bookingStatus: status });
 
     res.status(200).json({
-      success: true,
-      count: bookings.length,
       data: bookings,
+      count: bookings.length,
+      message: 'Bookings fetched successfully',
+      status: STATUS.SUCCESS,
     });
   } catch (error) {
     res.status(500).json({
+      data: null,
+      message: 'Error fetching bookings records.',
+      status: STATUS.FAILURE,
       error: error.message,
-      message: 'Error fetching bookings',
-      status: STATUS.ERROR,
     });
   }
 });
 
 // Update a booking
-router.put('/bookings/:id', async (req, res) => {
+router.put('/api/update-travel-records/:email', async (req, res) => {
   try {
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      req.params.id,
+    const updatedBooking = await Booking.findOneAndUpdate(
+      { userEmail: req.params.email },
       req.body,
       { new: true, runValidators: true },
     );
@@ -175,7 +182,7 @@ router.put('/bookings/:id', async (req, res) => {
       return res.status(404).json({
         data: null,
         message: 'Booking not found',
-        status: STATUS.FAILURE,
+        status: STATUS.NOT_FOUND,
       });
     }
 
@@ -187,7 +194,7 @@ router.put('/bookings/:id', async (req, res) => {
   } catch (error) {
     res.status(400).json({
       data: null,
-      message: 'Error updating booking',
+      message: 'Error updating booking records.',
       status: STATUS.FAILURE,
       error: error.message,
     });
@@ -195,7 +202,7 @@ router.put('/bookings/:id', async (req, res) => {
 });
 
 // Update booking by email with operations
-router.patch('/update-travel-records/:email', async (req, res) => {
+router.patch('/api/update-travel-records/:email', async (req, res) => {
   try {
     const { email } = req.params;
     const operations = req.body;
@@ -216,7 +223,7 @@ router.patch('/update-travel-records/:email', async (req, res) => {
       return res.status(404).json({
         data: null,
         message: 'Booking not found for this email',
-        status: STATUS.FAILURE,
+        status: STATUS.NOT_FOUND,
       });
     }
 
@@ -254,18 +261,9 @@ router.patch('/update-travel-records/:email', async (req, res) => {
       status: STATUS.SUCCESS,
     });
   } catch (error) {
-    // Check if error is about field not found
-    if (error.message.includes('not found in booking record')) {
-      return res.status(404).json({
-        data: null,
-        message: error.message,
-        status: STATUS.FAILURE,
-      });
-    }
-
     res.status(400).json({
       data: null,
-      message: 'Error updating booking',
+      message: 'Error updating booking records.',
       status: STATUS.FAILURE,
       error: error.message,
     });
@@ -273,7 +271,7 @@ router.patch('/update-travel-records/:email', async (req, res) => {
 });
 
 // Delete bookings by email
-router.delete('/bookings/user/:email', async (req, res) => {
+router.delete('/api/bookings/user/:email', async (req, res) => {
   try {
     const deletedBookings = await Booking.deleteMany({
       userEmail: req.params.email,
@@ -283,7 +281,7 @@ router.delete('/bookings/user/:email', async (req, res) => {
       return res.status(404).json({
         data: null,
         message: 'No bookings found for this email',
-        status: STATUS.FAILURE,
+        status: STATUS.NOT_FOUND,
       });
     }
 
@@ -295,7 +293,26 @@ router.delete('/bookings/user/:email', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       data: null,
-      message: 'Error deleting bookings',
+      message: 'Error deleting bookings records.',
+      status: STATUS.FAILURE,
+      error: error.message,
+    });
+  }
+});
+
+// DELETE whole booking collection (for admin use)
+router.delete('/api/bookings', async (req, res) => {
+  try {
+    const result = await Booking.deleteMany({});
+    res.status(200).json({
+      data: { deletedCount: result.deletedCount },
+      message: 'All bookings deleted successfully',
+      status: STATUS.SUCCESS,
+    });
+  } catch (error) {
+    res.status(500).json({
+      data: null,
+      message: 'Error deleting booking records.',
       status: STATUS.FAILURE,
       error: error.message,
     });

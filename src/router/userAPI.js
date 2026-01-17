@@ -80,13 +80,12 @@ router.post('/jwtUserLogin', async (req, res) => {
     (u) => u.id === id && u.password === password,
   );
   const responseData = { ...user };
-  if (!user) {
-    return res
-      .status(401)
-      .send({ message: 'Invalid credentials', status: 'FAILURE' });
-  }
   // eslint-disable-next-line no-underscore-dangle
   delete responseData._doc.password;
+
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
   const token = jwt.sign({ id: user.id }, secretKey, { expiresIn: '600s' });
   // eslint-disable-next-line no-underscore-dangle
   res.status(201).json({ token, userDetail: responseData._doc });
