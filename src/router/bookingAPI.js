@@ -87,16 +87,27 @@ router.get('/api/bookings/:id', async (req, res) => {
 });
 
 // Get bookings by email
-router.get('/api/bookings/user/:email', async (req, res) => {
+router.post('/api/bookings/user', async (req, res) => {
   try {
+    const { userEmail, password } = req.body;
+
+    if (!userEmail || !password) {
+      return res.status(400).json({
+        data: null,
+        message: 'userEmail and password are required',
+        status: STATUS.PENDING,
+      });
+    }
+
     const bookings = await Booking.find({
-      userEmail: req.params.email,
-    });
+      userEmail,
+      password,
+    }).select('-password');
 
     if (bookings.length === 0) {
-      return res.status(404).json({
+      return res.status(401).json({
         data: null,
-        message: 'No bookings found for this email',
+        message: 'Invalid email or password',
         status: STATUS.NOT_FOUND,
       });
     }
