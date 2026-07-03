@@ -1,0 +1,765 @@
+openapi: 3.0.3
+info:
+  title: Deck API
+  version: 1.0.0
+  description: >
+    OpenAPI spec for the Express backend routes currently mounted by the app.
+    This was inferred from the router modules and the main app entrypoint.
+servers:
+  - url: https://deck-api-g59h.onrender.com
+tags:
+  - name: auth
+  - name: users
+  - name: admin
+  - name: airports
+  - name: pricing
+  - name: blogs
+  - name: countries
+  - name: bookings
+  - name: cars
+  - name: health
+
+paths:
+  /infoJwt:
+    get:
+      tags: [auth]
+      summary: Basic JWT demo info endpoint
+      responses:
+        '200':
+          description: Success
+
+  /jwtLogin:
+    post:
+      tags: [auth]
+      summary: Login with sample user credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT returned
+
+  /profileJwt:
+    post:
+      tags: [auth]
+      summary: Validate a JWT token
+      parameters:
+        - in: header
+          name: authorization
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Token verified
+
+  /userJwtLogin:
+    post:
+      tags: [users]
+      summary: Authenticate a user and issue a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT issued
+        '401':
+          description: Invalid credentials
+
+  /userProfileJwt:
+    post:
+      tags: [users]
+      summary: Verify a user JWT
+      parameters:
+        - in: header
+          name: authorization
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Token verified
+
+  /jwtUserLogin:
+    post:
+      tags: [users]
+      summary: Login user and return user detail with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Login successful
+
+  /postData:
+    post:
+      tags: [users]
+      summary: Insert multiple user records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '201':
+          description: Records created
+
+  /getData/{id}:
+    get:
+      tags: [users]
+      summary: Fetch a single user record by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User record returned
+
+  /updateData/{id}:
+    patch:
+      tags: [users]
+      summary: Update a user record by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '202':
+          description: User updated
+
+  /removeData/{id}:
+    delete:
+      tags: [users]
+      summary: Delete a user record by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: User deleted
+
+  /adminPost:
+    post:
+      tags: [admin]
+      summary: Create admin records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '201':
+          description: Admin records created
+
+  /adminJwtLogin:
+    post:
+      tags: [admin]
+      summary: Authenticate an admin and issue a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                MID:
+                  type: string
+                MPIN:
+                  type: string
+      responses:
+        '201':
+          description: JWT issued
+
+  /getData:
+    get:
+      tags: [admin]
+      summary: Get all user data (admin)
+      parameters:
+        - in: header
+          name: authorization
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: User list returned
+
+  /adminGet:
+    get:
+      tags: [admin]
+      summary: Get all admin records
+      parameters:
+        - in: header
+          name: authorization
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Admin list returned
+
+  /adminGet/{id}:
+    get:
+      tags: [admin]
+      summary: Get an admin record by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin record returned
+
+  /adminUpdate/{id}:
+    patch:
+      tags: [admin]
+      summary: Update an admin record by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '202':
+          description: Admin updated
+
+  /removeAdmin/{id}:
+    delete:
+      tags: [admin]
+      summary: Delete an admin record by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Admin deleted
+
+  /removeAdmin/bulk:
+    delete:
+      tags: [admin]
+      summary: Delete multiple admin records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '202':
+          description: Admin records deleted
+
+  /airportGet:
+    get:
+      tags: [airports]
+      summary: Get all airports
+      responses:
+        '201':
+          description: Airport list returned
+
+  /airportGet/{id}:
+    get:
+      tags: [airports]
+      summary: Get an airport by code
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Airport returned
+
+  /airportUpdate/{id}:
+    patch:
+      tags: [airports]
+      summary: Update an airport by code
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Airport updated
+
+  /pricePost:
+    post:
+      tags: [pricing]
+      summary: Insert price records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '200':
+          description: Price records created
+
+  /priceUpdate/{id}:
+    patch:
+      tags: [pricing]
+      summary: Update price data by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Price updated
+
+  /priceGet:
+    get:
+      tags: [pricing]
+      summary: Get all price records
+      responses:
+        '201':
+          description: Price records returned
+
+  /postBlog:
+    post:
+      tags: [blogs]
+      summary: Create blog records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '200':
+          description: Blog records created
+
+  /getBlog:
+    get:
+      tags: [blogs]
+      summary: Get all blog entries
+      responses:
+        '201':
+          description: Blog entries returned
+
+  /getBlog/{name}:
+    get:
+      tags: [blogs]
+      summary: Get a blog entry by name
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Blog entry returned
+
+  /updateBlog/{name}:
+    patch:
+      tags: [blogs]
+      summary: Update a blog entry by name
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Blog updated
+
+  /removeBlog/{name}:
+    delete:
+      tags: [blogs]
+      summary: Delete a blog entry by name
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blog deleted
+
+  /addCountries:
+    post:
+      tags: [countries]
+      summary: Insert country records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '201':
+          description: Country records created
+
+  /countryList:
+    get:
+      tags: [countries]
+      summary: Get all countries
+      responses:
+        '200':
+          description: Country list returned
+
+  /countryList/{id}:
+    get:
+      tags: [countries]
+      summary: Get a country by code
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Country returned
+    patch:
+      tags: [countries]
+      summary: Update a country by code
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '202':
+          description: Country updated
+    delete:
+      tags: [countries]
+      summary: Delete a country by code
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Country deleted
+
+  /api/bookings:
+    post:
+      tags: [bookings]
+      summary: Create a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Booking created
+    get:
+      tags: [bookings]
+      summary: Get all bookings
+      responses:
+        '200':
+          description: Booking list returned
+    delete:
+      tags: [bookings]
+      summary: Delete all bookings
+      responses:
+        '200':
+          description: All bookings deleted
+
+  /api/bookings/{id}:
+    get:
+      tags: [bookings]
+      summary: Get a booking by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking returned
+
+  /api/bookings/user:
+    post:
+      tags: [bookings]
+      summary: Get bookings by user email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userEmail:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Bookings returned
+
+  /api/bookings/user/{email}:
+    delete:
+      tags: [bookings]
+      summary: Delete bookings by user email
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bookings deleted
+
+  /api/bookings-flight/{flightNumber}:
+    get:
+      tags: [bookings]
+      summary: Get bookings by flight number
+      parameters:
+        - in: path
+          name: flightNumber
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bookings returned
+
+  /api/bookings-status/{status}:
+    get:
+      tags: [bookings]
+      summary: Get bookings by status
+      parameters:
+        - in: path
+          name: status
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bookings returned
+
+  /api/update-travel-records/{email}:
+    put:
+      tags: [bookings]
+      summary: Update a booking by email
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Booking updated
+    patch:
+      tags: [bookings]
+      summary: Update booking fields using operations
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '200':
+          description: Booking updated
+
+  /api/cars-post:
+    post:
+      tags: [cars]
+      summary: Insert car records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '201':
+          description: Cars created
+
+  /api/cars-get:
+    get:
+      tags: [cars]
+      summary: Get cars with optional filters
+      parameters:
+        - in: query
+          name: engineType
+          schema:
+            type: string
+        - in: query
+          name: model
+          schema:
+            type: string
+        - in: query
+          name: transmission
+          schema:
+            type: string
+        - in: query
+          name: maker
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Filtered cars returned
+
+  /api/delete-cars-name/{name}:
+    delete:
+      tags: [cars]
+      summary: Delete a car record by name/model
+      description: The handler currently reads the route parameter as model, so this endpoint is listed under the route path as provided.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Car deleted
+
+  /api/health:
+    get:
+      tags: [health]
+      summary: Basic health check
+      responses:
+        '200':
+          description: Service is up
+
+  /api/health/detailed:
+    get:
+      tags: [health]
+      summary: Detailed health check
+      responses:
+        '200':
+          description: Detailed health information
+        '503':
+          description: Service unhealthy
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        status:
+          type: string
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        status:
+          type: string
