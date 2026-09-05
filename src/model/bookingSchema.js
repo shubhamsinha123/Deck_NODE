@@ -174,7 +174,7 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  isPassword: {
+  hasPassword: {
     type: Boolean,
     required: false,
     default: false,

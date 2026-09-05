@@ -3,297 +3,637 @@ info:
   title: Deck API
   version: 1.0.0
   description: >
-    OpenAPI spec for the Express backend routes currently mounted by the app.
-    This was inferred from the router modules and the main app entrypoint.
+    OpenAPI specification for the Deck Express backend.
+    All routes are mounted under /api/v1 unless marked as legacy.
 servers:
   - url: https://deck-api-g59h.onrender.com
+    description: Production
+  - url: http://localhost:5000
+    description: Local development
 tags:
   - name: auth
+    description: JWT authentication (legacy + OAuth 2.0 sessions)
   - name: users
+    description: User session management and CRUD
   - name: admin
+    description: Admin session management and CRUD
   - name: airports
+    description: Airport data
   - name: pricing
+    description: Flight pricing records
   - name: blogs
+    description: Blog posts
   - name: countries
+    description: Country records
   - name: bookings
+    description: Flight booking records
   - name: cars
+    description: Car rental records
   - name: health
+    description: Service health checks
 
 paths:
+
+  # ── AUTH (Legacy) ─────────────────────────────────────────────────────────
+
   /infoJwt:
     get:
       tags: [auth]
-      summary: Basic JWT demo info endpoint
+      summary: Legacy info endpoint (no auth required)
       responses:
         '200':
-          description: Success
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Hello from local
 
-  /jwtLogin:
+  /api/v1/auth/sessions:
     post:
       tags: [auth]
-      summary: Login with sample user credentials
+      summary: Admin/legacy login — issue JWT
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [id, password]
               properties:
                 id:
                   type: string
+                  example: admin01
                 password:
                   type: string
-      responses:
-        '200':
-          description: JWT returned
-
-  /profileJwt:
-    post:
-      tags: [auth]
-      summary: Validate a JWT token
-      parameters:
-        - in: header
-          name: authorization
-          schema:
-            type: string
-          required: true
-      responses:
-        '200':
-          description: Token verified
-
-  /userJwtLogin:
-    post:
-      tags: [users]
-      summary: Authenticate a user and issue a JWT
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                id:
-                  type: string
-                password:
-                  type: string
+                  example: secret
       responses:
         '200':
           description: JWT issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
         '401':
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /userProfileJwt:
+  /api/v1/auth/token/verify:
     post:
-      tags: [users]
-      summary: Verify a user JWT
+      tags: [auth]
+      summary: Verify a legacy JWT token
       parameters:
         - in: header
           name: authorization
+          required: true
           schema:
             type: string
-          required: true
+          example: Bearer <token>
       responses:
         '200':
-          description: Token verified
+          description: Token verified or expired message returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  authData:
+                    type: object
 
-  /jwtUserLogin:
+  # ── USERS ─────────────────────────────────────────────────────────────────
+
+  /api/v1/auth/user-sessions:
     post:
       tags: [users]
-      summary: Login user and return user detail with token
+      summary: User login — returns access_token + refresh_token
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [id, password]
               properties:
                 id:
                   type: string
+                  example: user@example.com
+                password:
+                  type: string
+                  example: myPassword123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TokenPair'
+                  message:
+                    type: string
+                    example: Login successful
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Missing id or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/user-sessions/login:
+    post:
+      tags: [users]
+      summary: User login with full user details in response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, password]
+              properties:
+                id:
+                  type: string
+                  example: user@example.com
                 password:
                   type: string
       responses:
-        '201':
-          description: Login successful
+        '200':
+          description: Login successful — tokens + user profile returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                  message:
+                    type: string
+                    example: Login successful
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Missing id or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /postData:
+  /api/v1/auth/user-sessions/refresh:
     post:
       tags: [users]
-      summary: Insert multiple user records
+      summary: Refresh access token using refresh token
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: array
-              items:
-                type: object
-      responses:
-        '201':
-          description: Records created
-
-  /getData/{id}:
-    get:
-      tags: [users]
-      summary: Fetch a single user record by id
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
       responses:
         '200':
-          description: User record returned
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TokenPair'
+                  message:
+                    type: string
+                    example: Token refreshed successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: refresh_token missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /updateData/{id}:
+  /api/v1/auth/user-sessions/revoke:
+    post:
+      tags: [users]
+      summary: Revoke refresh token (logout)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token revoked — user logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    nullable: true
+                    example: null
+                  message:
+                    type: string
+                    example: Token revoked successfully. You are logged out.
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: refresh_token missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users:
+    post:
+      tags: [users]
+      summary: Create user records (admin/superadmin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '201':
+          description: User(s) created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                  message:
+                    type: string
+                    example: User's data created successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users/{userId}:
+    get:
+      tags: [users]
+      summary: Get a user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          description: Unique user identifier
+          schema:
+            type: string
+          example: T006
+      responses:
+        '200':
+          description: User fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+                    example: User fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+              example:
+                data:
+                  - _id: 6a886b739b6a5ddb9b90ba51
+                    id: T006
+                    name: timtim
+                    location: cg
+                    date: '2026-08-21T00:00:00.000Z'
+                    country: India
+                    hasPassword: true
+                    role: user
+                    properties:
+                      from:
+                        _id: 6a886cc991555ca41922c028
+                        city: Mumbai
+                        code: BOM
+                        country: India
+                        name: Chhatrapati Shivaji International Airport
+                      to:
+                        _id: 6a886cc991555ca41922c027
+                        city: Bangalore
+                        code: BLR
+                        country: India
+                        name: Kempegowda International Airport
+                      class: Premium Economy Class
+                      date: '2025-11-28'
+                      seat: 3AE
+                      setNewsletter: false
+                message: User fetched successfully
+                status: SUCCESS
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                data: null
+                message: User with ID 'T006' not found
+                status: NOT_FOUND
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
       tags: [users]
-      summary: Update a user record by id
+      summary: Update a user by ID using RFC 6902 JSON Patch
+      description: >
+        Performs partial updates, removals, additions, moves, copies, or test assertions on a user document.
+        Requires payload to be an array of JSON patch operations (`[ { op, path, value } ]`).
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
-          name: id
+          name: userId
           required: true
+          description: Unique user identifier
           schema:
             type: string
+          example: T006
       requestBody:
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '202':
-          description: User updated
-
-  /removeData/{id}:
-    delete:
-      tags: [users]
-      summary: Delete a user record by id
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '202':
-          description: User deleted
-
-  /adminPost:
-    post:
-      tags: [admin]
-      summary: Create admin records
-      requestBody:
-        required: true
+        description: Array of RFC 6902 JSON Patch operation objects
         content:
           application/json:
             schema:
               type: array
               items:
-                type: object
+                $ref: '#/components/schemas/JsonPatchOperation'
+            examples:
+              allOpCodesCombination:
+                summary: Combination of all JSON Patch operation codes
+                value:
+                  - op: test
+                    path: /location
+                    value: cg
+                  - op: replace
+                    path: /Name
+                    value: Name Updated
+                  - op: replace
+                    path: /properties/from/name
+                    value: Chhatrapati Shivaji Maharaj International Airport
+                  - op: remove
+                    path: /properties/seat
+                  - op: add
+                    path: /properties/from/terminal
+                    value: T2
+                  - op: copy
+                    from: /location
+                    path: /backupLocation
+                  - op: move
+                    from: /visaStatus
+                    path: /oldVisaStatus
+              replaceAndRemove:
+                summary: Replace and Remove operation
+                value:
+                  - op: replace
+                    path: /Name
+                    value: Name Updated
+                  - op: remove
+                    path: /Description
+              nestedPathUpdate:
+                summary: Deep nested property update
+                value:
+                  - op: replace
+                    path: /properties/from/name
+                    value: Chhatrapati Shivaji Maharaj International Airport
       responses:
-        '201':
-          description: Admin records created
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+                    example: User 'T006' updated successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Bad Request (Invalid JSON Patch format, non-array body, or failed test op)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                data: null
+                message: "Invalid JSON patch format. Expected a non-empty array of patch operations: [{ op, path, value }]"
+                status: FAILURE
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [users]
+      summary: Delete a user by ID (user/superuser)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+                    example: User deleted successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /adminJwtLogin:
+  # ── ADMIN ─────────────────────────────────────────────────────────────────
+
+  /api/v1/admins:
     post:
       tags: [admin]
-      summary: Authenticate an admin and issue a JWT
+      summary: Create a new admin record (public)
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                MID:
-                  type: string
-                MPIN:
-                  type: string
+              $ref: '#/components/schemas/AdminInput'
       responses:
         '201':
-          description: JWT issued
-
-  /getData:
+          description: Admin record created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postBatchResponseData:
+                    type: object
+                  message:
+                    type: string
+                    example: Admin record created successfully.
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Failed to create admin record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       tags: [admin]
-      summary: Get all user data (admin)
-      parameters:
-        - in: header
-          name: authorization
-          schema:
-            type: string
-          required: true
-      responses:
-        '200':
-          description: User list returned
-
-  /adminGet:
-    get:
-      tags: [admin]
-      summary: Get all admin records
-      parameters:
-        - in: header
-          name: authorization
-          schema:
-            type: string
-          required: true
+      summary: Get all admins (requires auth)
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Admin list returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Admin'
+                  message:
+                    type: string
+                    example: Data fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error fetching admins
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /adminGet/{id}:
-    get:
-      tags: [admin]
-      summary: Get an admin record by id
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Admin record returned
-
-  /adminUpdate/{id}:
-    patch:
-      tags: [admin]
-      summary: Update an admin record by id
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '202':
-          description: Admin updated
-
-  /removeAdmin/{id}:
+  /api/v1/admins/bulk:
     delete:
       tags: [admin]
-      summary: Delete an admin record by id
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '202':
-          description: Admin deleted
-
-  /removeAdmin/bulk:
-    delete:
-      tags: [admin]
-      summary: Delete multiple admin records
+      summary: Bulk delete admins (requires auth)
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -302,56 +642,435 @@ paths:
               type: array
               items:
                 type: object
+                properties:
+                  MID:
+                    type: string
       responses:
         '202':
-          description: Admin records deleted
+          description: Admins deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                  message:
+                    type: string
+                    example: Whole ADMIN data has been deleted successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error during bulk delete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /airportGet:
+  /api/v1/admins/{MID}:
+    get:
+      tags: [admin]
+      summary: Get admin by MID (requires auth)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: MID
+          required: true
+          schema:
+            type: string
+          example: ADM001
+      responses:
+        '200':
+          description: Admin record returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Admin'
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error fetching admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [admin]
+      summary: Update admin by MID (requires auth)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: MID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminInput'
+      responses:
+        '202':
+          description: Admin updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Admin'
+                  message:
+                    type: string
+                    example: Data with ADM001 updated successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Admin not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [admin]
+      summary: Delete admin by MID (requires auth)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: MID
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Admin deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Admin'
+                  message:
+                    type: string
+                    example: Data with ADM001 deleted successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Admin not found or already deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/admin-sessions:
+    post:
+      tags: [admin]
+      summary: Admin login — issue access_token + refresh_token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [MID, MPIN]
+              properties:
+                MID:
+                  type: string
+                  example: ADM001
+                MPIN:
+                  type: string
+                  example: "1234"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/TokenPair'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: SUCCESS
+        '400':
+          description: MID or MPIN missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/admin-sessions/refresh:
+    post:
+      tags: [admin]
+      summary: Refresh admin access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/TokenPair'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: SUCCESS
+        '400':
+          description: refresh_token missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/admin-sessions/revoke:
+    post:
+      tags: [admin]
+      summary: Revoke admin refresh token (logout)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Admin logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Token revoked successfully. You are logged out.
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: refresh_token missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users-details:
+    get:
+      tags: [admin]
+      summary: Get all users data (admin view, requires auth)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Users data returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error fetching users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── AIRPORTS ──────────────────────────────────────────────────────────────
+
+  /api/v1/airports:
     get:
       tags: [airports]
       summary: Get all airports
       responses:
-        '201':
+        '200':
           description: Airport list returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Airport'
+                  message:
+                    type: string
+                    example: Airports fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error fetching airports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /airportGet/{id}:
+  /api/v1/airports/{airportCode}:
     get:
       tags: [airports]
-      summary: Get an airport by code
+      summary: Get a single airport by IATA code
       parameters:
         - in: path
-          name: id
+          name: airportCode
           required: true
           schema:
             type: string
+          example: BOM
       responses:
-        '201':
-          description: Airport returned
-
-  /airportUpdate/{id}:
+        '200':
+          description: Airport fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Airport'
+                  message:
+                    type: string
+                    example: Airport fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Airport not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error fetching airport
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
       tags: [airports]
-      summary: Update an airport by code
+      summary: Update an airport by IATA code
       parameters:
         - in: path
-          name: id
+          name: airportCode
           required: true
           schema:
             type: string
+          example: BOM
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/Airport'
       responses:
         '200':
-          description: Airport updated
+          description: Airport updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Airport'
+                  message:
+                    type: string
+                    example: Airport BOM updated successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Airport not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error updating airport
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /pricePost:
+  # ── PRICING ───────────────────────────────────────────────────────────────
+
+  /api/v1/prices:
     post:
       tags: [pricing]
-      summary: Insert price records
+      summary: Create price records
       requestBody:
         required: true
         content:
@@ -359,84 +1078,210 @@ paths:
             schema:
               type: array
               items:
+                $ref: '#/components/schemas/PriceInput'
+      responses:
+        '201':
+          description: Price records created successfully
+          content:
+            application/json:
+              schema:
                 type: object
-      responses:
-        '200':
-          description: Price records created
-
-  /priceUpdate/{id}:
-    patch:
-      tags: [pricing]
-      summary: Update price data by id
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Price updated
-
-  /priceGet:
+                properties:
+                  data:
+                    type: object
+                  message:
+                    type: string
+                    example: Price records created successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error creating price records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       tags: [pricing]
       summary: Get all price records
       responses:
-        '201':
-          description: Price records returned
+        '200':
+          description: Prices fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Price'
+                  message:
+                    type: string
+                    example: Prices fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error fetching prices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /postBlog:
-    post:
-      tags: [blogs]
-      summary: Create blog records
+  /api/v1/prices/{priceId}:
+    patch:
+      tags: [pricing]
+      summary: Update a price record by ID
+      parameters:
+        - in: path
+          name: priceId
+          required: true
+          schema:
+            type: string
+          example: BOM-DEL
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: array
-              items:
-                type: object
+              $ref: '#/components/schemas/PriceInput'
       responses:
         '200':
-          description: Blog records created
+          description: Price record updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Price'
+                  message:
+                    type: string
+                    example: Price record BOM-DEL updated successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Price record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error updating price record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /getBlog:
-    get:
+  # ── BLOGS ─────────────────────────────────────────────────────────────────
+
+  /api/v1/blog-posts:
+    post:
       tags: [blogs]
-      summary: Get all blog entries
+      summary: Create a blog post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlogInput'
       responses:
         '201':
-          description: Blog entries returned
-
-  /getBlog/{name}:
+          description: Blog created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Blog'
+                  message:
+                    type: string
+                    example: Blog created successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error creating blog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       tags: [blogs]
-      summary: Get a blog entry by name
+      summary: Get all blog posts
+      responses:
+        '200':
+          description: Blogs fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Blog'
+                  message:
+                    type: string
+                    example: Blogs fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error fetching blogs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/blog-posts/{slug}:
+    get:
+      tags: [blogs]
+      summary: Get a blog post by slug
       parameters:
         - in: path
-          name: name
+          name: slug
           required: true
           schema:
             type: string
+          example: top-10-airports
       responses:
-        '201':
-          description: Blog entry returned
-
-  /updateBlog/{name}:
+        '200':
+          description: Blog fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Blog'
+                  message:
+                    type: string
+                    example: Blog fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Blog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error fetching blog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
       tags: [blogs]
-      summary: Update a blog entry by name
+      summary: Update a blog post by slug
       parameters:
         - in: path
-          name: name
+          name: slug
           required: true
           schema:
             type: string
@@ -445,29 +1290,79 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/BlogInput'
       responses:
         '200':
-          description: Blog updated
-
-  /removeBlog/{name}:
+          description: Blog updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Blog'
+                  message:
+                    type: string
+                    example: Blog updated successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Blog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error updating blog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags: [blogs]
-      summary: Delete a blog entry by name
+      summary: Delete a blog post by slug
       parameters:
         - in: path
-          name: name
+          name: slug
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Blog deleted
+          description: Blog deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Blog'
+                  message:
+                    type: string
+                    example: Blog deleted successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Blog not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error deleting blog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /addCountries:
+  # ── COUNTRIES ─────────────────────────────────────────────────────────────
+
+  /api/v1/countries:
     post:
       tags: [countries]
-      summary: Insert country records
+      summary: Create country records
       requestBody:
         required: true
         content:
@@ -475,38 +1370,102 @@ paths:
             schema:
               type: array
               items:
-                type: object
+                $ref: '#/components/schemas/CountryInput'
       responses:
         '201':
-          description: Country records created
-
-  /countryList:
+          description: Countries created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                  message:
+                    type: string
+                    example: Countries created successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error creating countries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       tags: [countries]
       summary: Get all countries
       responses:
         '200':
-          description: Country list returned
+          description: Countries fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Country'
+                  message:
+                    type: string
+                    example: Countries fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error fetching countries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /countryList/{id}:
+  /api/v1/countries/{countryCode}:
     get:
       tags: [countries]
       summary: Get a country by code
       parameters:
         - in: path
-          name: id
+          name: countryCode
           required: true
           schema:
             type: string
+          example: IN
       responses:
         '200':
-          description: Country returned
+          description: Country fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Country'
+                  message:
+                    type: string
+                    example: Country fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Country not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error fetching country
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
       tags: [countries]
       summary: Update a country by code
       parameters:
         - in: path
-          name: id
+          name: countryCode
           required: true
           schema:
             type: string
@@ -515,97 +1474,501 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/CountryInput'
       responses:
-        '202':
-          description: Country updated
+        '200':
+          description: Country updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Country'
+                  message:
+                    type: string
+                    example: Country IN updated successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Country not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error updating country
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags: [countries]
       summary: Delete a country by code
       parameters:
         - in: path
-          name: id
+          name: countryCode
           required: true
           schema:
             type: string
       responses:
-        '202':
-          description: Country deleted
+        '200':
+          description: Country deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Country'
+                  message:
+                    type: string
+                    example: Country IN deleted successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Country not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error deleting country
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/bookings:
+  /api/v1/bookings:
     post:
       tags: [bookings]
-      summary: Create a booking
+      summary: Create a new booking
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/BookingInput'
       responses:
         '201':
-          description: Booking created
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Booking'
+                  message:
+                    type: string
+                    example: Booking created successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Request body is empty or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       tags: [bookings]
-      summary: Get all bookings
+      summary: Get all bookings (requires auth)
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: Booking list returned
+          description: List of all bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+                  message:
+                    type: string
+                    example: 3 booking(s) found
+                  status:
+                    type: string
+                    example: SUCCESS
+        '401':
+          description: Unauthorized – missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden – insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags: [bookings]
       summary: Delete all bookings
       responses:
         '200':
           description: All bookings deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      deletedCount:
+                        type: integer
+                        example: 5
+                  message:
+                    type: string
+                    example: All bookings deleted successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/bookings/{id}:
+  /api/v1/bookings/by-user/{email}:
     get:
       tags: [bookings]
-      summary: Get a booking by id
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Booking returned
-
-  /api/bookings/user:
-    post:
-      tags: [bookings]
-      summary: Get bookings by user email and password
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                userEmail:
-                  type: string
-                password:
-                  type: string
-      responses:
-        '200':
-          description: Bookings returned
-
-  /api/bookings/user/{email}:
-    delete:
-      tags: [bookings]
-      summary: Delete bookings by user email
+      summary: Get bookings by user email
+      description: Returns all booking records associated with the given email address. Password is never included in the response.
       parameters:
         - in: path
           name: email
           required: true
           schema:
             type: string
+            format: email
+          example: toto@gmail.com
       responses:
         '200':
-          description: Bookings deleted
+          description: Bookings found for the given email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+                  count:
+                    type: integer
+                    example: 2
+                  message:
+                    type: string
+                    example: Bookings fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: No bookings found for this email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+                    example: null
+                  message:
+                    type: string
+                    example: No bookings found for email: toto@gmail.com
+                  status:
+                    type: string
+                    example: NOT_FOUND
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [bookings]
+      summary: Full update of a booking by user email
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+          example: toto@gmail.com
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingInput'
+      responses:
+        '200':
+          description: Booking updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Booking'
+                  message:
+                    type: string
+                    example: Booking updated successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Booking not found for this email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid update data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [bookings]
+      summary: Partial update of a booking using JSON patch operations
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+          example: toto@gmail.com
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [keyName, op, updatedData]
+                properties:
+                  keyName:
+                    type: string
+                    example: bookingStatus
+                  op:
+                    type: string
+                    enum: [/replace]
+                    example: /replace
+                  updatedData:
+                    type: object
+                    example: { bookingStatus: "CONFIRMED" }
+      responses:
+        '200':
+          description: Booking patched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Booking'
+                  message:
+                    type: string
+                    example: Booking updated successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Operations array is empty or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found for this email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [bookings]
+      summary: Delete all bookings for a user email
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+          example: toto@gmail.com
+      responses:
+        '200':
+          description: Bookings deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      deletedCount:
+                        type: integer
+                        example: 2
+                  message:
+                    type: string
+                    example: 2 booking(s) deleted successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: No bookings found for this email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/bookings-flight/{flightNumber}:
+  /api/v1/bookings/by-user:
+    post:
+      tags: [bookings]
+      summary: Get bookings by user email + password (legacy auth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userEmail, password]
+              properties:
+                userEmail:
+                  type: string
+                  format: email
+                  example: toto@gmail.com
+                password:
+                  type: string
+                  example: mySecretPass
+      responses:
+        '200':
+          description: Bookings returned for the authenticated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+                  count:
+                    type: integer
+                    example: 1
+                  message:
+                    type: string
+                    example: Bookings fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Missing userEmail or password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    nullable: true
+                    example: null
+                  message:
+                    type: string
+                    example: userEmail and password are required
+                  status:
+                    type: string
+                    example: PENDING
+        '401':
+          description: Invalid email or password – no matching booking found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    nullable: true
+                    example: null
+                  message:
+                    type: string
+                    example: Invalid email or password
+                  status:
+                    type: string
+                    example: NOT_FOUND
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/bookings/{bookingId}:
+    get:
+      tags: [bookings]
+      summary: Get a single booking by ID
+      parameters:
+        - in: path
+          name: bookingId
+          required: true
+          schema:
+            type: string
+          example: 64f1a2b3c4d5e6f7a8b9c0d1
+      responses:
+        '200':
+          description: Booking found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Booking'
+                  message:
+                    type: string
+                    example: Booking fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/bookings/by-flight/{flightNumber}:
     get:
       tags: [bookings]
       summary: Get bookings by flight number
@@ -615,68 +1978,85 @@ paths:
           required: true
           schema:
             type: string
+          example: AI302
       responses:
         '200':
-          description: Bookings returned
+          description: Bookings returned for this flight
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+                  count:
+                    type: integer
+                  message:
+                    type: string
+                    example: Bookings fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: No bookings found for this flight
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/bookings-status/{status}:
+  /api/v1/bookings/by-status/{status}:
     get:
       tags: [bookings]
-      summary: Get bookings by status
+      summary: Get bookings by booking status
       parameters:
         - in: path
           name: status
           required: true
           schema:
             type: string
+          example: CONFIRMED
       responses:
         '200':
-          description: Bookings returned
-
-  /api/update-travel-records/{email}:
-    put:
-      tags: [bookings]
-      summary: Update a booking by email
-      parameters:
-        - in: path
-          name: email
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Booking updated
-    patch:
-      tags: [bookings]
-      summary: Update booking fields using operations
-      parameters:
-        - in: path
-          name: email
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
+          description: Bookings returned for this status
+          content:
+            application/json:
+              schema:
                 type: object
-      responses:
-        '200':
-          description: Booking updated
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+                  count:
+                    type: integer
+                  message:
+                    type: string
+                    example: Bookings fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/cars-post:
+
+  # ── CARS ──────────────────────────────────────────────────────────────────
+
+  /api/v1/cars:
     post:
       tags: [cars]
-      summary: Insert car records
+      summary: Create car records
       requestBody:
         required: true
         content:
@@ -684,82 +2064,772 @@ paths:
             schema:
               type: array
               items:
-                type: object
+                $ref: '#/components/schemas/CarInput'
       responses:
         '201':
-          description: Cars created
-
-  /api/cars-get:
+          description: Cars data created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                  message:
+                    type: string
+                    example: Cars data created successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Error creating cars
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       tags: [cars]
-      summary: Get cars with optional filters
+      summary: Get cars with optional query filters
       parameters:
         - in: query
           name: engineType
           schema:
             type: string
+          example: Electric
         - in: query
           name: model
           schema:
             type: string
+          example: Model 3
         - in: query
           name: transmission
           schema:
             type: string
+          example: Automatic
         - in: query
           name: maker
           schema:
             type: string
+          example: Tesla
       responses:
         '200':
-          description: Filtered cars returned
+          description: Cars fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Car'
+                  message:
+                    type: string
+                    example: Cars fetched successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '400':
+          description: Invalid filter key provided
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    nullable: true
+                    example: null
+                  message:
+                    type: string
+                    example: "Invalid filter criteria: color. Allowed: engineType, model, transmission, maker"
+                  status:
+                    type: string
+                    example: FAILURE
+        '404':
+          description: No cars match the filter criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/delete-cars-name/{name}:
+  /api/v1/cars/by-model/{model}:
     delete:
       tags: [cars]
-      summary: Delete a car record by name/model
-      description: The handler currently reads the route parameter as model, so this endpoint is listed under the route path as provided.
+      summary: Delete a car by model name
       parameters:
         - in: path
-          name: name
+          name: model
           required: true
           schema:
             type: string
+          example: Model 3
       responses:
         '200':
-          description: Car deleted
+          description: Car deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Car'
+                  message:
+                    type: string
+                    example: Car with model 'Model 3' deleted successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '404':
+          description: No car found with this model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Error deleting car
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/health:
+  # ── HEALTH ────────────────────────────────────────────────────────────────
+
+  /api/v1/health:
     get:
       tags: [health]
       summary: Basic health check
+      description: Returns 200 if DB connected, 503 if disconnected.
       responses:
         '200':
-          description: Service is up
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthBasic'
+        '503':
+          description: Service unhealthy — DB disconnected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthBasic'
 
-  /api/health/detailed:
+  /api/v1/health/details:
     get:
       tags: [health]
-      summary: Detailed health check
+      summary: Detailed health check with memory, process, and DB diagnostics
       responses:
         '200':
           description: Detailed health information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthDetailed'
         '503':
-          description: Service unhealthy
+          description: Service unhealthy or internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: DOWN
+                  timestamp:
+                    type: string
+                    format: date-time
+                  error:
+                    type: string
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
+
+    # ── Shared ──────────────────────────────────────────────────────────────
+
     ErrorResponse:
       type: object
       properties:
+        data:
+          nullable: true
+          example: null
         message:
           type: string
+          example: Something went wrong
         status:
           type: string
-    SuccessResponse:
+          example: FAILURE
+        error:
+          type: string
+          example: Detailed error message
+
+    TokenPair:
       type: object
       properties:
-        message:
+        token_type:
           type: string
+          example: Bearer
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refresh_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expires_in:
+          type: integer
+          example: 3600
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: user123
+            name:
+              type: string
+              example: John Doe
+
+    # ── Users ───────────────────────────────────────────────────────────────
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 6a886b739b6a5ddb9b90ba51
+        id:
+          type: string
+          example: T006
+        name:
+          type: string
+          example: timtim
+        mobileNumber:
+          type: string
+          example: "+919876543210"
+        location:
+          type: string
+          example: cg
+        date:
+          type: string
+          format: date-time
+          example: '2026-08-21T00:00:00.000Z'
+        country:
+          type: string
+          example: India
+        visaStatus:
+          type: string
+          example: Approved
+        eDate:
+          type: string
+          format: date-time
+        hasPassword:
+          type: boolean
+          example: true
+        role:
+          type: string
+          enum: [user, superuser, admin, superadmin]
+          example: user
+        properties:
+          type: object
+          nullable: true
+          properties:
+            from:
+              type: object
+              properties:
+                _id:
+                  type: string
+                city:
+                  type: string
+                  example: Mumbai
+                code:
+                  type: string
+                  example: BOM
+                country:
+                  type: string
+                  example: India
+                name:
+                  type: string
+                  example: Chhatrapati Shivaji International Airport
+            to:
+              type: object
+              properties:
+                _id:
+                  type: string
+                city:
+                  type: string
+                  example: Bangalore
+                code:
+                  type: string
+                  example: BLR
+                country:
+                  type: string
+                  example: India
+                name:
+                  type: string
+                  example: Kempegowda International Airport
+            class:
+              type: string
+              example: Premium Economy Class
+            date:
+              type: string
+              example: '2025-11-28'
+            seat:
+              type: string
+              example: 3AE
+            setNewsletter:
+              type: boolean
+              example: false
+        musicList:
+          type: array
+          items:
+            type: object
+
+    UserInput:
+      type: object
+      required: [id, password]
+      properties:
+        id:
+          type: string
+          example: user@example.com
+        password:
+          type: string
+          example: strongPassword123
+        role:
+          type: string
+          enum: [user, superuser, admin, superadmin]
+          example: user
+
+    JsonPatchOperation:
+      type: object
+      required: [op, path]
+      properties:
+        op:
+          type: string
+          enum: [add, replace, remove, copy, move, test]
+          description: RFC 6902 patch operation code
+          example: replace
+        path:
+          type: string
+          description: RFC 6901 JSON pointer path (case-insensitive key lookup supported)
+          example: /properties/from/name
+        value:
+          description: Value for add, replace, or test operations
+          example: Chhatrapati Shivaji Maharaj International Airport
+        from:
+          type: string
+          description: Source JSON pointer path for copy and move operations
+          example: /location
+
+    # ── Admins ──────────────────────────────────────────────────────────────
+
+    Admin:
+      type: object
+      properties:
+        _id:
+          type: string
+        MID:
+          type: string
+          example: ADM001
+        role:
+          type: string
+          example: admin
+
+    AdminInput:
+      type: object
+      required: [MID, MPIN]
+      properties:
+        MID:
+          type: string
+          example: ADM001
+        MPIN:
+          type: string
+          example: "1234"
+        role:
+          type: string
+          example: admin
+
+    # ── Airports ────────────────────────────────────────────────────────────
+
+    Airport:
+      type: object
+      properties:
+        _id:
+          type: string
+        airportCode:
+          type: string
+          example: BOM
+        airportName:
+          type: string
+          example: Chhatrapati Shivaji Maharaj International Airport
+        city:
+          type: string
+          example: Mumbai
+        country:
+          type: string
+          example: India
+
+    # ── Pricing ─────────────────────────────────────────────────────────────
+
+    Price:
+      type: object
+      properties:
+        _id:
+          type: string
+        codeFrom:
+          type: string
+          example: BOM
+        codeTo:
+          type: string
+          example: DEL
+        price:
+          type: number
+          example: 3500
+        currency:
+          type: string
+          example: INR
+
+    PriceInput:
+      type: object
+      required: [codeFrom, codeTo, price]
+      properties:
+        codeFrom:
+          type: string
+          example: BOM
+        codeTo:
+          type: string
+          example: DEL
+        price:
+          type: number
+          example: 3500
+        currency:
+          type: string
+          example: INR
+
+    # ── Blogs ───────────────────────────────────────────────────────────────
+
+    Blog:
+      type: object
+      properties:
+        _id:
+          type: string
+        slug:
+          type: string
+          example: top-10-airports
+        title:
+          type: string
+          example: Top 10 Airports in India
+        content:
+          type: string
+        author:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    BlogInput:
+      type: object
+      required: [slug, title]
+      properties:
+        slug:
+          type: string
+          example: top-10-airports
+        title:
+          type: string
+          example: Top 10 Airports in India
+        content:
+          type: string
+        author:
+          type: string
+
+    # ── Countries ───────────────────────────────────────────────────────────
+
+    Country:
+      type: object
+      properties:
+        _id:
+          type: string
+        countryCode:
+          type: string
+          example: IN
+        countryName:
+          type: string
+          example: India
+        flag:
+          type: string
+          example: IN-flag
+
+    CountryInput:
+      type: object
+      required: [countryCode, countryName]
+      properties:
+        countryCode:
+          type: string
+          example: IN
+        countryName:
+          type: string
+          example: India
+        flag:
+          type: string
+
+    # ── Bookings ────────────────────────────────────────────────────────────
+
+    Booking:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 64f1a2b3c4d5e6f7a8b9c0d1
+        userEntryStep:
+          type: integer
+          example: 1
+        userEmail:
+          type: string
+          format: email
+          example: toto@gmail.com
+        userPhone:
+          type: string
+          example: "+919876543210"
+        userAddress:
+          type: string
+          example: 12 Main Street, Mumbai
+        passengerData:
+          type: array
+          items:
+            type: object
+            properties:
+              passFirstName:
+                type: string
+                example: John
+              passLastName:
+                type: string
+                example: Doe
+              passGender:
+                type: string
+                example: Male
+        flightDetails:
+          type: object
+          properties:
+            flightName:
+              type: string
+              example: Air India
+            flightNumber:
+              type: string
+              example: AI302
+            flightClass:
+              type: string
+              example: Economy
+            flightDepartureDate:
+              type: string
+              example: "2024-12-01"
+            flightArrivalDate:
+              type: string
+              example: "2024-12-01"
+            flightDepartureTime:
+              type: string
+              example: "06:00"
+            flightArrivalTime:
+              type: string
+              example: "09:30"
+            flightDepartureCity:
+              type: string
+              example: Mumbai
+            flightArrivalCity:
+              type: string
+              example: Delhi
+            flightDate:
+              type: string
+              example: "2024-12-01"
+            flightPassengerCount:
+              type: integer
+              example: 1
+            flightFareDetails:
+              type: object
+              properties:
+                baseFare:
+                  type: number
+                  example: 3500
+                taxes:
+                  type: number
+                  example: 450
+                convinenceFee:
+                  type: number
+                  example: 150
+                baggageFee:
+                  type: number
+                  example: 0
+                seatFee:
+                  type: number
+                  example: 0
+                discount:
+                  type: number
+                  example: 0
+                totalFare:
+                  type: number
+                  example: 4100
+        addOns:
+          type: object
+          properties:
+            extrabaggage:
+              type: boolean
+              example: false
+            meal:
+              type: boolean
+              example: true
+            priorityboarding:
+              type: boolean
+              example: false
+            extrabaggageCount:
+              type: integer
+              example: 0
+            seatSelected:
+              type: array
+              items:
+                type: string
+              example: ["12A"]
+        bookingDate:
+          type: string
+          format: date-time
+          example: "2024-11-20T10:30:00Z"
+        bookingStatus:
+          type: string
+          example: CONFIRMED
+        hasPassword:
+          type: boolean
+          example: false
+
+    BookingInput:
+      type: object
+      required:
+        - userEmail
+        - userPhone
+        - passengerData
+        - flightDetails
+        - addOns
+        - bookingStatus
+      properties:
+        userEntryStep:
+          type: integer
+          example: 1
+        userEmail:
+          type: string
+          format: email
+          example: toto@gmail.com
+        userPhone:
+          type: string
+          example: "+919876543210"
+        userAddress:
+          type: string
+          example: 12 Main Street, Mumbai
+        passengerData:
+          type: array
+          items:
+            type: object
+        flightDetails:
+          type: object
+        addOns:
+          type: object
+        bookingStatus:
+          type: string
+          example: CONFIRMED
+        hasPassword:
+          type: boolean
+          example: false
+        password:
+          type: string
+          example: mySecretPass
+
+    # ── Cars ────────────────────────────────────────────────────────────────
+
+    Car:
+      type: object
+      properties:
+        _id:
+          type: string
+        model:
+          type: string
+          example: Model 3
+        maker:
+          type: string
+          example: Tesla
+        engineType:
+          type: string
+          example: Electric
+        transmission:
+          type: string
+          example: Automatic
+        seats:
+          type: integer
+          example: 5
+        pricePerDay:
+          type: number
+          example: 120
+
+    CarInput:
+      type: object
+      required: [model, maker, engineType, transmission]
+      properties:
+        model:
+          type: string
+          example: Model 3
+        maker:
+          type: string
+          example: Tesla
+        engineType:
+          type: string
+          example: Electric
+        transmission:
+          type: string
+          example: Automatic
+        seats:
+          type: integer
+          example: 5
+        pricePerDay:
+          type: number
+          example: 120
+
+    # ── Health ──────────────────────────────────────────────────────────────
+
+    HealthBasic:
+      type: object
+      properties:
         status:
           type: string
+          enum: [UP, DOWN]
+          example: UP
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          example: 3600.5
+        service:
+          type: string
+          example: api_connect
+        environment:
+          type: string
+          example: production
+        database:
+          type: string
+          enum: [Connected, Disconnected]
+          example: Connected
+
+    HealthDetailed:
+      allOf:
+        - $ref: '#/components/schemas/HealthBasic'
+        - type: object
+          properties:
+            version:
+              type: string
+              example: 1.0.0
+            checks:
+              type: object
+              properties:
+                database:
+                  type: object
+                memory:
+                  type: object
+                process:
+                  type: object

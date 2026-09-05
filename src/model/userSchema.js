@@ -1,5 +1,3 @@
-/* eslint-disable linebreak-style */
-/* eslint-disable new-cap */
 const mognoose = require('mongoose');
 
 const nestedSchema = new mognoose.Schema({
@@ -82,12 +80,11 @@ const schema = new mognoose.Schema({
     to: nestedSchema,
     setNewsletter: { type: Boolean, required: false },
   },
-  isPassword: {
+  hasPassword: {
     type: Boolean,
     required: false,
     unique: false,
   },
 });
 
-const userData = new mognoose.model('Citizen', schema);
-module.exports = userData;
+module.exports = mognoose.model('Citizen', schema);

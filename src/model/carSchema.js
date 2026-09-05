@@ -1,8 +1,6 @@
-/* eslint-disable linebreak-style */
-/* eslint-disable new-cap */
-const mognoose = require('mongoose');
+const mongoose = require('mongoose');
 
-const carSchema = new mognoose.Schema(
+const carSchema = new mongoose.Schema(
   {
     model: { type: String, required: true },
     maker: { type: String, required: true },
@@ -34,5 +32,5 @@ const carSchema = new mognoose.Schema(
   },
 );
 
-const carData = new mognoose.model('Car', carSchema);
-module.exports = carData;
+const Car = mongoose.models.Car || mongoose.model('Car', carSchema);
+module.exports = Car;

@@ -1,8 +1,6 @@
-/* eslint-disable linebreak-style */
-/* eslint-disable new-cap */
-const mognoose = require('mongoose');
+const mongoose = require('mongoose');
 
-const newSchema = new mognoose.Schema({
+const adminSchema = new mongoose.Schema({
   MID: {
     type: String,
     required: true,
@@ -25,7 +23,11 @@ const newSchema = new mognoose.Schema({
     required: true,
     unique: false,
   },
+  role: {
+    type: String,
+    enum: ['admin', 'superadmin'],
+    default: 'admin',
+  },
 });
 
-const admin = new mognoose.model('Admin', newSchema);
-module.exports = admin;
+module.exports = mongoose.models.Admin || mongoose.model('Admin', adminSchema);

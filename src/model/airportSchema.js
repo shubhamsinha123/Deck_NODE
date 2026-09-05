@@ -1,8 +1,7 @@
-/* eslint-disable linebreak-style */
-/* eslint-disable new-cap */
-const mognoose = require('mongoose');
+const mongoose = require('mongoose');
+
 // Trying to access airport collections
-const schema = new mognoose.Schema({
+const schema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
@@ -30,5 +29,5 @@ const schema = new mognoose.Schema({
   },
 });
 
-const airport = new mognoose.model('Airport', schema);
-module.exports = airport;
+const Airport = mongoose.models.Airport || mongoose.model('Airport', schema);
+module.exports = Airport;
