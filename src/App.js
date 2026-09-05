@@ -1,18 +1,19 @@
-/* eslint-disable linebreak-style */
+/* eslint-disable linebreak-style, no-console */
 const express = require('express');
 require('./db/data');
 const cors = require('cors');
 // API Routes
-const userAPI = require('./router/userAPI');
-const jwtapi = require('./router/jwtapi');
-const adminAPI = require('./router/adminAPI');
-const airportAPI = require('./router/airportAPI');
-const priceAPI = require('./router/priceAPI');
-const blogAPI = require('./router/blogAPI');
-const countriesAPI = require('./router/countriesAPI');
-const bookingAPI = require('./router/bookingAPI');
-const carAPI = require('./router/carAPI');
-const healthAPI = require('./router/healthAPI');
+const userAPI = require('./controllers/user.controller').router;
+const jwtapi = require('./controllers/auth.controller').router;
+const adminAPI = require('./controllers/admin.controller').router;
+const airportAPI = require('./controllers/airport.controller').router;
+const priceAPI = require('./controllers/price.controller').router;
+const blogAPI = require('./controllers/blog.controller').router;
+const countriesAPI = require('./controllers/country.controller').router;
+const bookingAPI = require('./controllers/booking.controller').router;
+const carAPI = require('./controllers/car.controller').router;
+const healthAPI = require('./controllers/health.controller').router;
+// const otpAPI = require('./controllers/otp.controller').router;
 // const flightStatus = require('./router/flightStatus');
 const app = express();
 const port = process.env.PORT || 5000;
@@ -40,6 +41,7 @@ const routes = [
   bookingAPI,
   carAPI,
   healthAPI,
+  // otpAPI,
 ];
 
 routes.forEach((route) => app.use(route));
@@ -47,3 +49,5 @@ routes.forEach((route) => app.use(route));
 app.listen(port, () => {
   console.warn(`we are listening from port ${port}`);
 });
+
+module.exports = app;

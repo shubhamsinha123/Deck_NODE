@@ -1,8 +1,50 @@
-/* eslint-disable linebreak-style */
-/* eslint-disable new-cap */
-const mognoose = require('mongoose');
+const mongoose = require('mongoose');
 
-const nestedSchema = new mognoose.Schema({
+const trackSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  url: {
+    type: String,
+    required: false,
+    default: '',
+  },
+  thumbnail: {
+    type: String,
+    required: false,
+    default: '',
+  },
+  uploaderName: {
+    type: String,
+    required: false,
+    default: '',
+  },
+  duration: {
+    type: Number,
+    required: false,
+    default: 0,
+  },
+}, { _id: false });
+
+const playlistSchema = new mongoose.Schema({
+  id: {
+    type: String,
+    required: true,
+    default: () => `pl-${Date.now()}`,
+  },
+  name: {
+    type: String,
+    required: true,
+    default: 'My Playlist',
+  },
+  tracks: {
+    type: [trackSchema],
+    default: [],
+  },
+}, { _id: false });
+
+const nestedSchema = new mongoose.Schema({
   city: {
     type: String,
     required: false,
@@ -20,7 +62,7 @@ const nestedSchema = new mognoose.Schema({
     required: false,
   },
 });
-const schema = new mognoose.Schema({
+const schema = new mongoose.Schema({
   id: {
     type: String,
     required: true,
@@ -28,10 +70,16 @@ const schema = new mognoose.Schema({
     validate: {
       validator(value) {
         // Validate alphanumeric value using a regular expression
-        return /^[a-zA-Z0-9]*$/.test(value);
+        return /^[a-zA-Z0-9+_.-]*$/.test(value);
       },
-      message: 'ID must be alphanumeric.',
+      message: 'ID must be valid alphanumeric or phone/email string.',
     },
+  },
+  mobileNumber: {
+    type: String,
+    required: false,
+    unique: true,
+    sparse: true,
   },
   name: {
     type: String,
@@ -40,14 +88,6 @@ const schema = new mognoose.Schema({
   },
   password: {
     type: String,
-    unique: true,
-    validate: {
-      validator(value) {
-        // Validate alphanumeric value using a regular expression
-        return /^[a-zA-Z0-9]*$/.test(value);
-      },
-      message: 'Password can be alphanumeric.',
-    },
   },
   location: {
     type: String,
@@ -82,12 +122,20 @@ const schema = new mognoose.Schema({
     to: nestedSchema,
     setNewsletter: { type: Boolean, required: false },
   },
-  isPassword: {
+  musicList: {
+    type: [playlistSchema],
+    default: [],
+  },
+  hasPassword: {
     type: Boolean,
     required: false,
     unique: false,
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user',
+  },
 });
 
-const citizen = new mognoose.model('Citizen', schema);
-module.exports = citizen;
+module.exports = mongoose.model('Citizen', schema);

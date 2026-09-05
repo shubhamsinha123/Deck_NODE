@@ -1,8 +1,6 @@
-/* eslint-disable linebreak-style */
-/* eslint-disable new-cap */
-const mognoose = require('mongoose');
-// Trying to access airport collections
-const schema = new mognoose.Schema({
+const mongoose = require('mongoose');
+
+const schema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -58,7 +56,6 @@ const schema = new mognoose.Schema({
     required: false,
     unique: false,
   },
-  // need to make chat as required TBD
   chat: [
     {
       text: {
@@ -85,5 +82,5 @@ const schema = new mognoose.Schema({
   ],
 });
 
-const blog = new mognoose.model('Blogs', schema);
-module.exports = blog;
+const Blog = mongoose.models.Blogs || mongoose.model('Blogs', schema);
+module.exports = Blog;

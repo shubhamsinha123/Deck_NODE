@@ -1,8 +1,6 @@
-/* eslint-disable linebreak-style */
-/* eslint-disable new-cap */
-const mognoose = require('mongoose');
-// Trying to access airport collections
-const schema = new mognoose.Schema({
+const mongoose = require('mongoose');
+
+const schema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
@@ -20,5 +18,5 @@ const schema = new mognoose.Schema({
   },
 });
 
-const countries = new mognoose.model('Country', schema);
-module.exports = countries;
+const Country = mongoose.models.Country || mongoose.model('Country', schema);
+module.exports = Country;
