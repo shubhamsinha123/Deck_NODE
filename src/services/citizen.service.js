@@ -10,19 +10,19 @@ class CitizenService {
   }
 
   async getAllCitizens() {
-    return Citizen.find({});
+    return Citizen.find({}).select('-password');
   }
 
   async getCitizenById(id) {
-    return Citizen.find({ id });
+    return Citizen.find({ id }).select('-password');
   }
 
   async updateCitizenById(id, updateData) {
-    return Citizen.findOneAndUpdate({ id }, updateData, { new: true });
+    return Citizen.findOneAndUpdate({ id }, updateData, { new: true }).select('-password');
   }
 
   async deleteCitizenById(id) {
-    return Citizen.findOneAndDelete({ id });
+    return Citizen.findOneAndDelete({ id }).select('-password');
   }
 }
 

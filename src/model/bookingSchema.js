@@ -137,6 +137,10 @@ const addOnsSchema = new mongoose.Schema({
 
 // Main booking schema
 const bookingSchema = new mongoose.Schema({
+  user_id: {
+    type: String,
+    required: false,
+  },
   userEntryStep: {
     type: Number,
     required: true,

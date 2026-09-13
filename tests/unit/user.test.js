@@ -114,9 +114,36 @@ describe("UserService Unit Tests", () => {
     });
   });
 
+  describe("getAllUsers", () => {
+    it("should return sorted users without password", async () => {
+      const mockUsers = [
+        { id: "2", name: "Bob", password: "pwd" },
+        { id: "1", name: "Alice", password: "pwd" },
+      ];
+      const selectMock = jest.fn().mockResolvedValue(mockUsers);
+      User.find.mockReturnValue({ select: selectMock });
+
+      const result = await userService.getAllUsers();
+
+      expect(User.find).toHaveBeenCalledWith({});
+      expect(selectMock).toHaveBeenCalledWith("-password");
+      expect(result[0].id).toBe("1");
+      expect(result[1].id).toBe("2");
+      expect(result[0].password).toBeUndefined();
+      expect(result[1].password).toBeUndefined();
+    });
+
+    it("should throw AppError if find fails", async () => {
+      User.find.mockReturnValue({
+        select: jest.fn().mockRejectedValue(new Error("Db error")),
+      });
+      await expect(userService.getAllUsers()).rejects.toThrow(AppError);
+    });
+  });
+
   describe("getUserById", () => {
     it("should query for specific user by id without exposing password", async () => {
-      const mockUser = [{ id: "123", name: "John" }];
+      const mockUser = [{ id: "123", name: "John", password: "secret_password" }];
       const selectMock = jest.fn().mockResolvedValue(mockUser);
       User.find.mockReturnValue({ select: selectMock });
 
@@ -124,7 +151,8 @@ describe("UserService Unit Tests", () => {
 
       expect(User.find).toHaveBeenCalledWith({ id: "123" });
       expect(selectMock).toHaveBeenCalledWith("-password");
-      expect(result).toEqual(mockUser);
+      expect(result[0].id).toBe("123");
+      expect(result[0].password).toBeUndefined();
     });
 
     it("should throw AppError if find fails", async () => {
@@ -136,10 +164,65 @@ describe("UserService Unit Tests", () => {
   });
 
   describe("updateUserById", () => {
-    it("should throw AppError 400 if body is a plain object instead of a JSON Patch array", async () => {
-      await expect(
-        userService.updateUserById("123", { password: "timtim2" })
-      ).rejects.toThrow("Invalid JSON patch format. Expected a non-empty array of patch operations: [{ op, path, value }]");
+    it("should throw AppError 400 if update payload is invalid or empty", async () => {
+      await expect(userService.updateUserById("123", null)).rejects.toThrow(
+        "Invalid update payload. Expected an object or a JSON patch array",
+      );
+      await expect(userService.updateUserById("123", {})).rejects.toThrow(
+        "Update payload cannot be empty",
+      );
+      await expect(userService.updateUserById("123", [])).rejects.toThrow(
+        "Invalid JSON patch format. Expected a non-empty array of patch operations: [{ op, path, value }]",
+      );
+    });
+
+    it("should update user record with a plain object payload (e.g. date, eDate, visaStatus)", async () => {
+      const mockExistingDoc = {
+        _id: "60d0fe4f5311236168a109ca",
+        id: "123",
+        name: "Old Name",
+        date: "2026-01-01",
+        eDate: "2026-02-01",
+        visaStatus: "Pending",
+        toObject: () => ({
+          _id: "60d0fe4f5311236168a109ca",
+          id: "123",
+          name: "Old Name",
+          date: "2026-01-01",
+          eDate: "2026-02-01",
+          visaStatus: "Pending",
+        }),
+      };
+      const mockUpdated = {
+        id: "123",
+        name: "Old Name",
+        date: "2026-08-26",
+        eDate: "2026-09-24",
+        visaStatus: "Approved",
+      };
+
+      User.findOne.mockResolvedValue(mockExistingDoc);
+      User.findOneAndReplace.mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockUpdated),
+      });
+
+      const payload = { date: "2026-08-26", eDate: "2026-09-24", visaStatus: "Approved" };
+      const result = await userService.updateUserById("123", payload);
+
+      expect(User.findOne).toHaveBeenCalledWith({ id: "123" });
+      expect(User.findOneAndReplace).toHaveBeenCalledWith(
+        { id: "123" },
+        {
+          _id: "60d0fe4f5311236168a109ca",
+          id: "123",
+          name: "Old Name",
+          date: "2026-08-26",
+          eDate: "2026-09-24",
+          visaStatus: "Approved",
+        },
+        { new: true, runValidators: true },
+      );
+      expect(result).toEqual(mockUpdated);
     });
 
     it("should update user record with RFC 6902 JSON Patch array payload (replace & remove with case fallback)", async () => {
@@ -153,7 +236,9 @@ describe("UserService Unit Tests", () => {
       const mockUpdated = { id: "123", name: "Name Updated" };
 
       User.findOne.mockResolvedValue(mockExistingDoc);
-      User.findOneAndReplace.mockResolvedValue(mockUpdated);
+      User.findOneAndReplace.mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockUpdated),
+      });
 
       const patchArray = [
         { op: "replace", path: "/Name", value: "Name Updated" },
@@ -199,7 +284,9 @@ describe("UserService Unit Tests", () => {
       };
 
       User.findOne.mockResolvedValue(mockExistingDoc);
-      User.findOneAndReplace.mockResolvedValue(mockUpdated);
+      User.findOneAndReplace.mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockUpdated),
+      });
 
       const patchArray = [
         { op: "replace", path: "/properties/from/name", value: "Chhatrapati Shivaji Maharaj International Airport" },
@@ -233,10 +320,12 @@ describe("UserService Unit Tests", () => {
       const mockUpdated = { id: "123", hasPassword: true };
 
       User.findOne.mockResolvedValue(mockExistingDoc);
-      User.findOneAndReplace.mockResolvedValue(mockUpdated);
+      User.findOneAndReplace.mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockUpdated),
+      });
 
       const result = await userService.updateUserById("123", [
-        { op: "replace", path: "/password", value: "newpassword123" }
+        { op: "replace", path: "/password", value: "newpassword123" },
       ]);
 
       expect(User.findOneAndReplace).toHaveBeenCalledWith(
@@ -247,7 +336,7 @@ describe("UserService Unit Tests", () => {
       expect(result).toEqual(mockUpdated);
     });
 
-    it("should throw AppError if user not found for patch array update", async () => {
+    it("should throw AppError if user not found for patch update", async () => {
       User.findOne.mockResolvedValue(null);
       const result = await userService.updateUserById("999", [{ op: "replace", path: "/name", value: "test" }]);
       expect(result).toBeNull();
@@ -255,9 +344,11 @@ describe("UserService Unit Tests", () => {
 
     it("should throw AppError if update fails", async () => {
       User.findOne.mockResolvedValue({ _id: "60d0fe4f5311236168a109ca", id: "123", toObject: () => ({ _id: "60d0fe4f5311236168a109ca", id: "123" }) });
-      User.findOneAndReplace.mockRejectedValue(new Error("Db error"));
+      User.findOneAndReplace.mockReturnValue({
+        select: jest.fn().mockRejectedValue(new Error("Db error")),
+      });
       await expect(
-        userService.updateUserById("123", [{ op: "replace", path: "/name", value: "test" }])
+        userService.updateUserById("123", [{ op: "replace", path: "/name", value: "test" }]),
       ).rejects.toThrow(AppError);
     });
   });
@@ -265,7 +356,9 @@ describe("UserService Unit Tests", () => {
   describe("deleteUserById", () => {
     it("should delete user by id", async () => {
       const mockDeleted = { id: "123" };
-      User.findOneAndDelete.mockResolvedValue(mockDeleted);
+      User.findOneAndDelete.mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockDeleted),
+      });
 
       const result = await userService.deleteUserById("123");
 
@@ -274,7 +367,9 @@ describe("UserService Unit Tests", () => {
     });
 
     it("should throw AppError if delete fails", async () => {
-      User.findOneAndDelete.mockRejectedValue(new Error("Db error"));
+      User.findOneAndDelete.mockReturnValue({
+        select: jest.fn().mockRejectedValue(new Error("Db error")),
+      });
       await expect(userService.deleteUserById("123")).rejects.toThrow(AppError);
     });
   });

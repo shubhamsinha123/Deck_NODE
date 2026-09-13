@@ -44,24 +44,6 @@ const playlistSchema = new mongoose.Schema({
   },
 }, { _id: false });
 
-const nestedSchema = new mongoose.Schema({
-  city: {
-    type: String,
-    required: false,
-  },
-  code: {
-    type: String,
-    required: false,
-  },
-  country: {
-    type: String,
-    required: false,
-  },
-  name: {
-    type: String,
-    required: false,
-  },
-});
 const schema = new mongoose.Schema({
   id: {
     type: String,
@@ -115,12 +97,8 @@ const schema = new mongoose.Schema({
     unique: false,
   },
   properties: {
-    date: { type: String, required: false },
-    class: { type: String, required: false },
-    seat: { type: String, required: false },
-    from: nestedSchema,
-    to: nestedSchema,
-    setNewsletter: { type: Boolean, required: false },
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
   },
   musicList: {
     type: [playlistSchema],
