@@ -157,15 +157,23 @@ class UserService {
       const hashPassword = async (record) => {
         if (!record.password) return record;
         const hashed = await bcrypt.hash(record.password, 10);
-        return { ...record, password: hashed };
+        return { ...record, password: hashed, hasPassword: true };
+      };
+
+      const sanitizeUser = (u) => {
+        const userObj = u.toObject ? u.toObject() : { ...(u._doc || u) };
+        delete userObj.password;
+        return userObj;
       };
 
       if (Array.isArray(usersData)) {
         const hashed = await Promise.all(usersData.map(hashPassword));
-        return await User.insertMany(hashed);
+        const createdUsers = await User.insertMany(hashed);
+        return createdUsers.map(sanitizeUser);
       }
       const hashed = await hashPassword(usersData);
-      return await User.create(hashed);
+      const createdUser = await User.create(hashed);
+      return sanitizeUser(createdUser);
     } catch (error) {
       if (error instanceof AppError) throw error;
       if (error.code === 11000) {
@@ -175,20 +183,61 @@ class UserService {
     }
   }
 
+  async getAllUsers() {
+    try {
+      const query = User.find({});
+      let result;
+      if (query && typeof query.select === 'function') {
+        result = await query.select('-password');
+      } else {
+        result = await query;
+      }
+      if (Array.isArray(result)) {
+        result.sort((a, b) => {
+          const numA = parseInt(a.id, 10);
+          const numB = parseInt(b.id, 10);
+          if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+            return numA - numB;
+          }
+          return (a.id || '').localeCompare(b.id || '');
+        });
+        return result.map((doc) => {
+          const obj = doc.toObject ? doc.toObject() : { ...(doc._doc || doc) };
+          delete obj.password;
+          return obj;
+        });
+      }
+      return result;
+    } catch (error) {
+      throw new AppError('Failed to fetch users', 500);
+    }
+  }
+
   async getUserById(id) {
     try {
-      return await User.find({ id }).select('-password');
+      const query = User.find({ id });
+      let result;
+      if (query && typeof query.select === 'function') {
+        result = await query.select('-password');
+      } else {
+        result = await query;
+      }
+      if (Array.isArray(result)) {
+        return result.map((doc) => {
+          const obj = doc.toObject ? doc.toObject() : { ...(doc._doc || doc) };
+          delete obj.password;
+          return obj;
+        });
+      }
+      return result;
     } catch (error) {
       throw new AppError('Failed to fetch user', 500);
     }
   }
 
   async updateUserById(id, updateData) {
-    if (!Array.isArray(updateData) || updateData.length === 0) {
-      throw new AppError(
-        'Invalid JSON patch format. Expected a non-empty array of patch operations: [{ op, path, value }]',
-        400,
-      );
+    if (!updateData || typeof updateData !== 'object') {
+      throw new AppError('Invalid update payload. Expected an object or a JSON patch array', 400);
     }
 
     try {
@@ -196,7 +245,33 @@ class UserService {
       if (!existingUser) return null;
 
       const userObj = existingUser.toObject ? existingUser.toObject() : { ...existingUser };
-      const { target: patchedObj } = applyJsonPatch(userObj, updateData);
+      let patchedObj;
+
+      if (Array.isArray(updateData)) {
+        if (updateData.length === 0) {
+          throw new AppError(
+            'Invalid JSON patch format. Expected a non-empty array of patch operations: [{ op, path, value }]',
+            400,
+          );
+        }
+        const { target } = applyJsonPatch(userObj, updateData);
+        patchedObj = target;
+      } else {
+        if (Object.keys(updateData).length === 0) {
+          throw new AppError('Update payload cannot be empty', 400);
+        }
+        patchedObj = { ...userObj };
+        Object.keys(updateData).forEach((key) => {
+          if (key === 'properties' && typeof updateData.properties === 'object' && updateData.properties !== null) {
+            patchedObj.properties = {
+              ...(patchedObj.properties || {}),
+              ...updateData.properties,
+            };
+          } else {
+            patchedObj[key] = updateData[key];
+          }
+        });
+      }
 
       if (patchedObj.playlists && !patchedObj.musicList) {
         patchedObj.musicList = patchedObj.playlists;
@@ -217,10 +292,18 @@ class UserService {
         patchedObj,
         { new: true, runValidators: true },
       );
+      let result;
       if (replaceQuery && typeof replaceQuery.select === 'function') {
-        return await replaceQuery.select('-password');
+        result = await replaceQuery.select('-password');
+      } else {
+        result = await replaceQuery;
       }
-      return await replaceQuery;
+      if (result) {
+        const resultObj = result.toObject ? result.toObject() : { ...(result._doc || result) };
+        delete resultObj.password;
+        return resultObj;
+      }
+      return result;
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError(error.message || 'Failed to update user', 500);
@@ -249,7 +332,19 @@ class UserService {
 
   async deleteUserById(id) {
     try {
-      return await User.findOneAndDelete({ id });
+      const query = User.findOneAndDelete({ id });
+      let result;
+      if (query && typeof query.select === 'function') {
+        result = await query.select('-password');
+      } else {
+        result = await query;
+      }
+      if (result) {
+        const resultObj = result.toObject ? result.toObject() : { ...(result._doc || result) };
+        delete resultObj.password;
+        return resultObj;
+      }
+      return result;
     } catch (error) {
       throw new AppError('Failed to delete user', 500);
     }
