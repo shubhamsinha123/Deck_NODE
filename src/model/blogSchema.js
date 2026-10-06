@@ -1,86 +1,175 @@
 const mongoose = require('mongoose');
 
-const schema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    unique: false,
+const chatMessageSchema = new mongoose.Schema(
+  {
+    text: {
+      type: String,
+      default: '',
+    },
+    sender: {
+      type: String,
+      default: 'Anonymous',
+    },
+    avatar: {
+      type: String,
+      default: '',
+    },
+    timestamp: {
+      type: String,
+      default: () => new Date().toISOString(),
+    },
+    likes: {
+      type: Number,
+      default: 0,
+    },
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
+    reactions: [
+      {
+        emoji: { type: String },
+        count: { type: Number, default: 0 },
+        users: [{ type: String }],
+      },
+    ],
   },
-  date: {
-    type: String,
-    required: true,
-    unique: false,
-  },
-  image: {
-    type: String,
-    required: true,
-    unique: false,
-  },
-  description: {
-    type: String,
-    required: true,
-    unique: false,
-  },
-  moreDesc: {
-    type: String,
-    required: false,
-    unique: false,
-  },
-  viewCount: {
-    type: Number,
-    required: true,
-    unique: false,
-  },
-  flagIcon: {
-    type: String,
-    required: true,
-    unique: false,
-  },
-  city: {
-    type: String,
-    required: true,
-    unique: false,
-  },
-  country: {
-    type: String,
-    required: true,
-    unique: false,
-  },
-  likes: {
-    type: Boolean,
-    required: false,
-    unique: false,
-  },
-  flag: {
-    type: Boolean,
-    required: false,
-    unique: false,
-  },
-  chat: [
-    {
-      text: {
+  { _id: true, timestamps: true },
+);
+
+const blogSchema = new mongoose.Schema(
+  {
+    // Primary Blog Fields
+    title: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    name: {
+      // Retained for backward-compatibility with legacy routes
+      type: String,
+      required: false,
+      trim: true,
+    },
+    category: {
+      type: String,
+      default: 'General',
+      trim: true,
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    readTime: {
+      type: String,
+      default: '3 min read',
+    },
+    isTrending: {
+      type: Boolean,
+      default: false,
+    },
+    date: {
+      type: String,
+      default: () => new Date().toISOString().split('T')[0],
+    },
+    image: {
+      type: String,
+      default: '',
+    },
+    description: {
+      type: String,
+      default: '',
+    },
+    moreDesc: {
+      type: String,
+      default: '',
+    },
+
+    // Author Details Subdocument
+    author: {
+      name: {
         type: String,
-        required: false,
+        default: 'Anonymous',
       },
-      sender: {
+      role: {
         type: String,
-        required: false,
+        default: 'Author',
       },
-      timestamp: {
+      avatar: {
         type: String,
-        required: false,
-      },
-      likes: {
-        type: Number,
-        required: false,
-      },
-      isEdited: {
-        type: Boolean,
-        required: false,
+        default: '',
       },
     },
-  ],
-});
 
-const Blog = mongoose.models.Blogs || mongoose.model('Blogs', schema);
+    // Location Information Subdocument
+    location: {
+      city: {
+        type: String,
+        default: '',
+      },
+      country: {
+        type: String,
+        default: '',
+      },
+      flagIcon: {
+        type: String,
+        default: '',
+      },
+    },
+
+    // Engagement Metrics
+    engagement: {
+      viewCount: {
+        type: mongoose.Schema.Types.Mixed, // Supports number or formatted strings like "29.2k"
+        default: 0,
+      },
+      rating: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5,
+      },
+      likesCount: {
+        type: Number,
+        default: 0,
+      },
+    },
+
+    // Legacy flat fields for backward compatibility
+    viewCount: {
+      type: mongoose.Schema.Types.Mixed,
+      required: false,
+    },
+    city: {
+      type: String,
+      required: false,
+    },
+    country: {
+      type: String,
+      required: false,
+    },
+    flagIcon: {
+      type: String,
+      required: false,
+    },
+    likes: {
+      type: mongoose.Schema.Types.Mixed,
+      required: false,
+    },
+    flag: {
+      type: Boolean,
+      required: false,
+    },
+
+    // Real-time Chat / Comments Subdocument List
+    chat: [chatMessageSchema],
+  },
+  {
+    timestamps: true,
+    versionKey: false,
+  },
+);
+
+const Blog = mongoose.models.Blogs || mongoose.model('Blogs', blogSchema);
 module.exports = Blog;
+
