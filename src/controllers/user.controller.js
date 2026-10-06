@@ -121,7 +121,9 @@ class UserController {
    */
   async revokeToken(req, res) {
     try {
+      // eslint-disable-next-line camelcase
       const { refresh_token } = req.body;
+      // eslint-disable-next-line camelcase
       if (!refresh_token) {
         return res.status(400).json({
           data: null,
