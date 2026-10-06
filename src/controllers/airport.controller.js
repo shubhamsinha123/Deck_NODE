@@ -2,6 +2,7 @@
 const express = require('express');
 const airportService = require('../services/airport.service');
 const STATUS = require('../constants/statusConstants');
+const { getApiLimiter } = require('../middleware/rateLimiter.middleware');
 
 const router = express.Router();
 
@@ -79,8 +80,8 @@ class AirportController {
 
 const airportController = new AirportController();
 
-router.get('/api/v1/airports', airportController.getAllAirports.bind(airportController));
-router.get('/api/v1/airports/:airportCode', airportController.getAirportByCode.bind(airportController));
+router.get('/api/v1/airports', getApiLimiter, airportController.getAllAirports.bind(airportController));
+router.get('/api/v1/airports/:airportCode', getApiLimiter, airportController.getAirportByCode.bind(airportController));
 router.patch('/api/v1/airports/:airportCode', airportController.updateAirportByCode.bind(airportController));
 
 airportController.router = router;

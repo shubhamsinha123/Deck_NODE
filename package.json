@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx jest --runInBand --detectOpenHandles --forceExit",
+    "test:ratelimit": "node tests/stress_test_rate_limit.js",
     "start": "node server.js",
     "dev": "nodemon server.js",
     "lint": "npx eslint --ext .jsx,.js src",
@@ -20,6 +21,7 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.7.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^5.7.0",
     "mongoose": "^7.4.1",

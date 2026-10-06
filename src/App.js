@@ -2,6 +2,7 @@
 const express = require('express');
 require('./db/data');
 const cors = require('cors');
+const { globalLimiter } = require('./middleware/rateLimiter.middleware');
 // API Routes
 const userAPI = require('./controllers/user.controller').router;
 const jwtapi = require('./controllers/auth.controller').router;
@@ -29,6 +30,7 @@ app.use(
     ],
   }),
 );
+app.use(globalLimiter);
 
 const routes = [
   userAPI,
