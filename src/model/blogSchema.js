@@ -125,14 +125,29 @@ const blogSchema = new mongoose.Schema(
       },
       rating: {
         type: Number,
-        default: 0,
-        min: 0,
+        default: null,
+        min: 1,
         max: 5,
+      },
+      ratingCount: {
+        type: Number,
+        default: 0,
+      },
+      ratingSum: {
+        type: Number,
+        default: 0,
       },
       likesCount: {
         type: Number,
         default: 0,
       },
+      ratedBy: [
+        {
+          userId: { type: String }, // User ID or anonymous session ID
+          score: { type: Number, min: 1, max: 5 },
+          submittedAt: { type: Date, default: Date.now },
+        },
+      ],
     },
 
     // Legacy flat fields for backward compatibility

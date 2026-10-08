@@ -4,7 +4,7 @@ const Blog = require('../models/Blog');
 
 const buildQuery = (identifier) => {
   if (!identifier) return {};
-  const conditions = [{ name: identifier }, { title: identifier }];
+  const conditions = [{ 'author.name': identifier }, { title: identifier }];
   if (mongoose.Types.ObjectId.isValid(identifier)) {
     conditions.push({ _id: identifier });
   }
@@ -35,3 +35,4 @@ class BlogService {
 }
 
 module.exports = new BlogService();
+
