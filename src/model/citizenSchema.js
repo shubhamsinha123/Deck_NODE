@@ -44,6 +44,24 @@ const playlistSchema = new mongoose.Schema({
   },
 }, { _id: false });
 
+const nestedSchema = new mongoose.Schema({
+  city: {
+    type: String,
+    required: false,
+  },
+  code: {
+    type: String,
+    required: false,
+  },
+  country: {
+    type: String,
+    required: false,
+  },
+  name: {
+    type: String,
+    required: false,
+  },
+});
 const schema = new mongoose.Schema({
   id: {
     type: String,
@@ -97,8 +115,12 @@ const schema = new mongoose.Schema({
     unique: false,
   },
   properties: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {},
+    date: { type: String, required: false },
+    class: { type: String, required: false },
+    seat: { type: String, required: false },
+    from: nestedSchema,
+    to: nestedSchema,
+    setNewsletter: { type: Boolean, required: false },
   },
   musicList: {
     type: [playlistSchema],
@@ -113,6 +135,24 @@ const schema = new mongoose.Schema({
     type: String,
     enum: ['user', 'admin'],
     default: 'user',
+  },
+  avatar: {
+    type: String,
+    default: null,
+    maxlength: [
+      150000,
+      'Avatar string too large for free tier database storage',
+    ],
+  },
+  avatarSeed: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  avatarType: {
+    type: String,
+    enum: ['vector', 'image', 'initials', null],
+    default: null,
   },
 });
 
