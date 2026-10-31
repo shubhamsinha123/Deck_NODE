@@ -2,8 +2,7 @@
 const express = require('express');
 require('./db/data');
 const cors = require('cors');
-const http = require('http');
-// eslint-disable-next-line import/no-extraneous-dependencies
+const { createServer } = require('http');
 const { Server } = require('socket.io');
 // API Routes
 const userAPI = require('./controllers/user.controller').router;
@@ -18,11 +17,13 @@ const carAPI = require('./controllers/car.controller').router;
 const healthAPI = require('./controllers/health.controller').router;
 // const otpAPI = require('./controllers/otp.controller').router;
 // const flightStatus = require('./router/flightStatus');
+
+const { json, urlencoded } = express;
 const app = express();
 const port = process.env.PORT || 5000;
 
 // Apply middleware BEFORE routes
-app.use(express.json());
+app.use(json());
 app.use(
   cors({
     origin: [
@@ -34,13 +35,13 @@ app.use(
 );
 
 // 1. Create HTTP server from express app
-const server = http.createServer(app);
+const server = createServer(app);
 // 2. Initialize Socket.io with CORS allowing your React app
 const io = new Server(server, {
   cors: {
     origin: '*', // Or specify: ['http://localhost:3000', 'http://localhost:3001']
-    methods: ['GET', 'POST', 'PATCH']
-  }
+    methods: ['GET', 'POST', 'PATCH'],
+  },
 });
 
 // 3. Socket event handlers
@@ -75,6 +76,9 @@ app.use((req, res, next) => {
   req.io = io;
   next();
 });
+
+app.use(json({ limit: '2mb' }));
+app.use(urlencoded({ extended: true, limit: '2mb' }));
 
 const routes = [
   userAPI,
