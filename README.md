@@ -86,20 +86,6 @@ Validates style, syntax, and formatting constraints across source files:
 ```bash
 npm run lint
 ```
----
-
-# OpenAPI Documentation
-
-For creating or validating the OpenAPI (Swagger) specification, refer to:
-
-- Swagger Editor: http://editor.swagger.io/
-- Jira Story: https://deck-digital.atlassian.net/browse/DD-72
-
-> **Note:** You can either get API spec from docs folder from `master` repo or from the jira comments.
-
-> **Note:** Open and copy the API spec as its there as `.yaml` file and check more details by pasting it over `swagger editor` app.
-
-> **Note:** Ensure the OpenAPI specification is updated whenever new APIs are added or existing APIs are modified. Keep the documentation in sync with the application code.
 
 ---
 
@@ -116,8 +102,17 @@ docker build -t api_connect .
 ```bash
 docker images
 ```
+### JENKINS Integrated
+```
+git SSH Integrated
+http//localhost:8080 at local machine
+```
 
 ### Run Docker Container
 ```bash
 docker run -p 5000:5000 --env-file .env api_connect
 ```
+
+JWT create for env:
+
+node -e "const c=require('crypto'); console.log('JWT_ACCESS_SECRET=' + c.randomBytes(48).toString('hex')); console.log('JWT_REFRESH_SECRET=' + c.randomBytes(48).toString('hex'));"

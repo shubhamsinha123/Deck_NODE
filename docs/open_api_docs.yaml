@@ -31,6 +31,8 @@ tags:
     description: Car rental records
   - name: health
     description: Service health checks
+  - name: stocks
+    description: Indian Stock Lister & AI Recommendation Engine (NSE/BSE equities, technicals, fundamentals, news, and Gemini AI verdicts)
 
 paths:
 
@@ -1691,7 +1693,7 @@ paths:
                     example: null
                   message:
                     type: string
-                    example: No bookings found for email: toto@gmail.com
+                    example: "No bookings found for email: toto@gmail.com"
                   status:
                     type: string
                     example: NOT_FOUND
@@ -2240,6 +2242,648 @@ paths:
                   error:
                     type: string
 
+  # ── STOCKS & AI RECOMMENDATION ────────────────────────────────────────────
+
+  /api/stocks:
+    get:
+      tags: [stocks]
+      summary: List all tracked Indian stocks
+      security:
+        - bearerAuth: []
+      description: >
+        Retrieve tracked equities across NSE & BSE with real-time price snapshot,
+        day change %, 52-week high/low, sector, market cap, and latest AI recommendation badge.
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by symbol or company name (case-insensitive regex)
+          example: RELIANCE
+        - in: query
+          name: sector
+          schema:
+            type: string
+          description: Filter by sector name
+          example: Financial Services
+        - in: query
+          name: market_cap
+          schema:
+            type: string
+            enum: [LARGE, MID, SMALL, ALL]
+          description: Filter by market capitalization category
+          example: LARGE
+        - in: query
+          name: verdict
+          schema:
+            type: string
+            enum: [STRONG_BUY, BUY, HOLD, REDUCE, AVOID, ALL]
+          description: Filter by AI recommendation verdict
+          example: STRONG_BUY
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [score:desc, score:asc, price:desc, price:asc, change:desc, change:asc, name:asc, symbol:asc]
+          description: Sort field and direction
+          example: score:desc
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          description: Number of stocks per page (or 0 / all=true for all)
+          example: 50
+        - in: query
+          name: series
+          schema:
+            type: string
+            enum: [EQ, BE, SM, ALL]
+          description: NSE equity series (EQ = regular equity)
+          example: EQ
+      responses:
+        '200':
+          description: List of Indian stocks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockListResponse'
+        '401':
+          description: Unauthorized — Missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden — Insufficient role permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '429':
+          description: Too Many Requests — Rate limit threshold exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TooManyRequestsResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/stocks:
+    get:
+      tags: [stocks]
+      summary: List all tracked Indian stocks (v1 alias)
+      description: Alias of /api/stocks
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: sector
+          schema:
+            type: string
+        - in: query
+          name: market_cap
+          schema:
+            type: string
+            enum: [LARGE, MID, SMALL, ALL]
+        - in: query
+          name: verdict
+          schema:
+            type: string
+            enum: [STRONG_BUY, BUY, HOLD, REDUCE, AVOID, ALL]
+        - in: query
+          name: sort
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of Indian stocks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockListResponse'
+        '401':
+          description: Unauthorized — Missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedResponse'
+        '403':
+          description: Forbidden — Insufficient role permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        '429':
+          description: Too Many Requests — Rate limit threshold exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TooManyRequestsResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/screen:
+    get:
+      tags: [stocks]
+      summary: Multi-factor stock screener
+      description: Filter Indian equities by sector, market cap, and AI verdict.
+      parameters:
+        - in: query
+          name: sector
+          schema:
+            type: string
+        - in: query
+          name: verdict
+          schema:
+            type: string
+            enum: [STRONG_BUY, BUY, HOLD, REDUCE, AVOID]
+        - in: query
+          name: market_cap
+          schema:
+            type: string
+            enum: [LARGE, MID, SMALL]
+        - in: query
+          name: sort
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Screener results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockListResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/stocks/screen:
+    get:
+      tags: [stocks]
+      summary: Multi-factor stock screener (stocks path alias)
+      description: Alias of /api/screen
+      parameters:
+        - in: query
+          name: sector
+          schema:
+            type: string
+        - in: query
+          name: verdict
+          schema:
+            type: string
+        - in: query
+          name: market_cap
+          schema:
+            type: string
+        - in: query
+          name: sort
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Screener results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockListResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/stocks/screen:
+    get:
+      tags: [stocks]
+      summary: Multi-factor stock screener (v1 alias)
+      description: Alias of /api/screen
+      parameters:
+        - in: query
+          name: sector
+          schema:
+            type: string
+        - in: query
+          name: verdict
+          schema:
+            type: string
+        - in: query
+          name: market_cap
+          schema:
+            type: string
+        - in: query
+          name: sort
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Screener results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockListResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/stocks/{symbol}:
+    get:
+      tags: [stocks]
+      summary: Get comprehensive stock details and latest news
+      description: >
+        Returns real-time price snapshot, 52-week range, technical indicators (RSI, 50/200 DMA, MACD, Pivot levels),
+        corporate fundamentals from Screener.in, and recent Google News headlines.
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          description: Stock ticker with exchange suffix (e.g. RELIANCE.NS, TCS.NS)
+          example: RELIANCE.NS
+      responses:
+        '200':
+          description: Stock details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockDetailResponse'
+        '404':
+          description: Stock ticker not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/stocks/{symbol}:
+    get:
+      tags: [stocks]
+      summary: Get comprehensive stock details and latest news (v1 alias)
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          example: RELIANCE.NS
+      responses:
+        '200':
+          description: Stock details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockDetailResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/stocks/{symbol}/history:
+    get:
+      tags: [stocks]
+      summary: Get candlestick OHLCV data for charts
+      description: >
+        Returns historical open, high, low, close, volume candlestick time series
+        compatible with TradingView lightweight-charts.
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          example: RELIANCE.NS
+        - in: query
+          name: range
+          schema:
+            type: string
+            enum: [1D, 1W, 1M, 6M, 1Y, 5Y]
+            default: 1M
+          description: Historical time window
+          example: 1M
+      responses:
+        '200':
+          description: Candlestick time series data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockHistoryApiResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/stocks/{symbol}/history:
+    get:
+      tags: [stocks]
+      summary: Get candlestick OHLCV data for charts (v1 alias)
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          example: RELIANCE.NS
+        - in: query
+          name: range
+          schema:
+            type: string
+            enum: [1D, 1W, 1M, 6M, 1Y, 5Y]
+            default: 1M
+      responses:
+        '200':
+          description: Candlestick time series data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockHistoryApiResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/stocks/{symbol}/ai-verdict:
+    get:
+      tags: [stocks]
+      summary: Get AI recommendation and quantitative synthesis
+      description: >
+        Returns AI verdict (STRONG_BUY, BUY, HOLD, REDUCE, AVOID), confidence score,
+        40-40-20 composite scores, fundamental/technical/sentiment rationales, key catalysts,
+        key risks, and suggested horizon. Generated via Google Gemini API or SEBI-standard quantitative analysis.
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          example: RELIANCE.NS
+      responses:
+        '200':
+          description: AI recommendation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiVerdictResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/stocks/{symbol}/ai-verdict:
+    get:
+      tags: [stocks]
+      summary: Get AI recommendation and quantitative synthesis (v1 alias)
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          example: RELIANCE.NS
+      responses:
+        '200':
+          description: AI recommendation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiVerdictResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/stocks/sync:
+    post:
+      tags: [stocks]
+      summary: Trigger immediate sync and re-scrape for all default stocks
+      description: Scrapes quotes, Screener fundamentals, news, and updates AI verdicts.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                symbol:
+                  type: string
+                  example: RELIANCE.NS
+      responses:
+        '200':
+          description: Sync completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    nullable: true
+                  message:
+                    type: string
+                    example: All default stocks synced successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/stocks/{symbol}/sync:
+    post:
+      tags: [stocks]
+      summary: Trigger immediate sync and re-scrape for a specific stock
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          example: RELIANCE.NS
+      responses:
+        '200':
+          description: Stock synced successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                  message:
+                    type: string
+                    example: Stock 'RELIANCE.NS' synced successfully
+                  status:
+                    type: string
+                    example: SUCCESS
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/stocks/refresh-nse-directory:
+    post:
+      tags: [stocks]
+      summary: Refresh official master list from NSE portal and sync all stocks to DB
+      description: Downloads the latest official EQUITY_L.csv from NSE and bulk-syncs all 2,600+ equities into MongoDB.
+      responses:
+        '200':
+          description: Directory refreshed and synced successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 2632
+                  message:
+                    type: string
+                    example: NSE official directory refreshed (2632 stocks synced)
+                  status:
+                    type: string
+                    example: SUCCESS
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/stocks/indices:
+    get:
+      tags: [stocks]
+      summary: Fetch real-time Indian benchmark indices (NIFTY 50, SENSEX, BANK NIFTY, INDIA VIX)
+      description: Real-time broadcast feeds with exchange timestamps down to the second, Indian market session status, and a 10s live buffer (?fresh=true bypasses cache).
+      parameters:
+        - in: query
+          name: fresh
+          schema:
+            type: boolean
+          required: false
+          description: Set to true to bypass the 10s in-memory cache and fetch immediate exchange quotes.
+      responses:
+        '200':
+          description: Benchmark market indices fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: NIFTY 50
+                        symbol:
+                          type: string
+                          example: ^NSEI
+                        exchange:
+                          type: string
+                          example: NSE
+                        current_price:
+                          type: number
+                          example: 24902.1
+                        change:
+                          type: number
+                          example: -84.3
+                        change_percent:
+                          type: number
+                          example: -0.34
+                        timestamp:
+                          type: string
+                          format: date-time
+                        data_source:
+                          type: string
+                          example: YAHOO_V8_NSE
+                        data_tag:
+                          type: string
+                          example: realtime
+                  count:
+                    type: integer
+                    example: 5
+                  market:
+                    type: object
+                    properties:
+                      session:
+                        type: string
+                        example: OPEN
+                      is_live:
+                        type: boolean
+                        example: true
+                      trading_hours:
+                        type: string
+                        example: 09:15 - 15:30 IST (Monday - Friday)
+                      ist_time:
+                        type: string
+                        example: 10:40:09 am
+                  last_updated:
+                    type: string
+                    format: date-time
+                  status:
+                    type: string
+                    example: SUCCESS
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2266,6 +2910,42 @@ components:
         error:
           type: string
           example: Detailed error message
+
+    TooManyRequestsResponse:
+      type: object
+      properties:
+        data:
+          nullable: true
+          example: null
+        message:
+          type: string
+          example: Too many requests. Rate limit exceeded. Please retry after 25 seconds.
+        status:
+          type: string
+          example: TOO_MANY_REQUESTS
+        retry_after:
+          type: integer
+          example: 25
+
+    UnauthorizedResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Authorization header missing or malformed
+        status:
+          type: string
+          example: UNAUTHORIZED
+
+    ForbiddenResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Access denied. Required role - admin or superadmin
+        status:
+          type: string
+          example: FORBIDDEN
 
     TokenPair:
       type: object
@@ -2832,4 +3512,388 @@ components:
                 memory:
                   type: object
                 process:
-                  type: object
+                  type: object
+
+    # ── Stocks & AI Recommendations ─────────────────────────────────────────
+
+    FiftyTwoWeekRange:
+      type: object
+      properties:
+        high:
+          type: number
+          example: 3217.9
+        low:
+          type: number
+          example: 2220.3
+
+    StockFundamentals:
+      type: object
+      properties:
+        pe_ratio:
+          type: number
+          example: 28.4
+        industry_pe:
+          type: number
+          example: 26.1
+        pb_ratio:
+          type: number
+          example: 2.3
+        roe:
+          type: number
+          example: 14.8
+        roce:
+          type: number
+          example: 13.9
+        debt_to_equity:
+          type: number
+          example: 0.42
+        promoter_holding:
+          type: number
+          example: 50.3
+        promoter_pledged:
+          type: number
+          example: 0.0
+        fii_holding:
+          type: number
+          example: 22.4
+        dii_holding:
+          type: number
+          example: 16.8
+
+    MacdIndicator:
+      type: object
+      properties:
+        signal:
+          type: string
+          enum: [BULLISH_CROSS, BULLISH, BEARISH_CROSS, BEARISH, NEUTRAL]
+          example: BULLISH_CROSS
+        histogram:
+          type: number
+          example: 4.2
+
+    PivotLevels:
+      type: object
+      properties:
+        p:
+          type: number
+          example: 2975.0
+        r1:
+          type: number
+          example: 3010.0
+        s1:
+          type: number
+          example: 2950.0
+
+    StockTechnicals:
+      type: object
+      properties:
+        rsi_14:
+          type: number
+          example: 56.4
+        macd:
+          $ref: '#/components/schemas/MacdIndicator'
+        dma_50:
+          type: number
+          example: 2940.1
+        dma_200:
+          type: number
+          example: 2810.5
+        pivot_levels:
+          $ref: '#/components/schemas/PivotLevels'
+
+    LatestAiVerdictBadge:
+      type: object
+      properties:
+        verdict:
+          type: string
+          enum: [STRONG_BUY, BUY, HOLD, REDUCE, AVOID, PENDING]
+          example: STRONG_BUY
+        composite_score:
+          type: number
+          minimum: 0
+          maximum: 100
+          example: 84
+        confidence_score:
+          type: number
+          minimum: 0
+          maximum: 100
+          example: 86
+        summary:
+          type: string
+          example: Reliance shows strong technical momentum trading above its 50 and 200 DMAs.
+        updated_at:
+          type: string
+          format: date-time
+
+    Stock:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: RELIANCE.NS
+        symbol:
+          type: string
+          example: RELIANCE.NS
+        company_name:
+          type: string
+          example: Reliance Industries Limited
+        exchange:
+          type: string
+          enum: [NSE, BSE]
+          example: NSE
+        sector:
+          type: string
+          example: Energy & Petrochemicals
+        market_cap_category:
+          type: string
+          enum: [LARGE, MID, SMALL]
+          example: LARGE
+        series:
+          type: string
+          enum: [EQ, BE, SM, BZ]
+          example: EQ
+        isin:
+          type: string
+          example: INE002A01018
+        listing_date:
+          type: string
+          example: 29-NOV-1995
+        current_price:
+          type: number
+          example: 2985.5
+        day_change:
+          type: number
+          example: 24.3
+        day_change_percent:
+          type: number
+          example: 0.82
+        volume:
+          type: number
+          example: 6842100
+        delivery_percent:
+          type: number
+          example: 58.4
+        data_source:
+          type: string
+          enum: [REALTIME_NSE, REALTIME_SCREENER, FALLBACK]
+          example: REALTIME_NSE
+        is_fallback:
+          type: boolean
+          example: false
+        data_tag:
+          type: string
+          enum: [realtime, fallback]
+          example: realtime
+        fifty_two_week:
+          $ref: '#/components/schemas/FiftyTwoWeekRange'
+        fundamentals:
+          $ref: '#/components/schemas/StockFundamentals'
+        technicals:
+          $ref: '#/components/schemas/StockTechnicals'
+        latest_ai_verdict:
+          $ref: '#/components/schemas/LatestAiVerdictBadge'
+        last_updated:
+          type: string
+          format: date-time
+
+    NewsArticle:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Reliance shares trade with steady institutional volume amid broader market consolidation
+        link:
+          type: string
+          example: https://news.google.com
+        pubDate:
+          type: string
+          format: date-time
+        source:
+          type: string
+          example: LiveMint / Economic Times
+
+    StockDetail:
+      allOf:
+        - $ref: '#/components/schemas/Stock'
+        - type: object
+          properties:
+            news:
+              type: array
+              items:
+                $ref: '#/components/schemas/NewsArticle'
+
+    Candle:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: RELIANCE.NS
+        timestamp:
+          type: string
+          format: date-time
+        open:
+          type: number
+          example: 2965.0
+        high:
+          type: number
+          example: 2990.0
+        low:
+          type: number
+          example: 2960.0
+        close:
+          type: number
+          example: 2985.5
+        volume:
+          type: number
+          example: 6842100
+
+    StockHistoryData:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: RELIANCE.NS
+        range:
+          type: string
+          example: 1M
+        candles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candle'
+
+    AiPredictionCompositeScores:
+      type: object
+      properties:
+        fundamental:
+          type: number
+          example: 34
+        technical:
+          type: number
+          example: 34
+        sentiment:
+          type: number
+          example: 16
+
+    AiPrediction:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: RELIANCE.NS
+        verdict:
+          type: string
+          enum: [STRONG_BUY, BUY, HOLD, REDUCE, AVOID]
+          example: STRONG_BUY
+        confidence_score:
+          type: number
+          example: 86
+        composite_scores:
+          $ref: '#/components/schemas/AiPredictionCompositeScores'
+        summary:
+          type: string
+          example: Reliance shows strong technical momentum trading above its 50 and 200 DMAs.
+        fundamental_summary:
+          type: string
+          example: P/E stands at 28.4 with ROCE of 13.9% and conservative debt-to-equity of 0.42.
+        technical_summary:
+          type: string
+          example: "Stock is trading at ₹2985.5 with RSI at 56.4 and MACD signal: BULLISH_CROSS."
+        sentiment_summary:
+          type: string
+          example: Recent news flow reflects balanced coverage across tracked financial sources.
+        catalysts:
+          type: array
+          items:
+            type: string
+          example:
+            - Healthy delivery volume of 58% indicating institutional accumulation
+            - RSI at 56 indicates healthy upward headroom before reaching overbought levels
+            - Zero promoter shares pledged with low debt-to-equity of 0.42
+        risks:
+          type: array
+          items:
+            type: string
+          example:
+            - Current valuation P/E of 28.4 trades at a slight premium to sector benchmark (26.1)
+            - Trading within 8% of 52-week highs facing potential near-term profit booking
+        suggested_horizon:
+          type: string
+          example: Long-Term (3-12 months)
+        created_at:
+          type: string
+          format: date-time
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 2632
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 50
+        totalPages:
+          type: integer
+          example: 53
+
+    StockListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stock'
+        count:
+          type: integer
+          example: 50
+        total:
+          type: integer
+          example: 2632
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+        message:
+          type: string
+          example: All NSE listed Indian stocks fetched successfully
+        status:
+          type: string
+          example: SUCCESS
+
+    StockDetailResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/StockDetail'
+        message:
+          type: string
+          example: Stock 'RELIANCE.NS' details fetched successfully
+        status:
+          type: string
+          example: SUCCESS
+
+    StockHistoryApiResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/StockHistoryData'
+        message:
+          type: string
+          example: Historical candlestick history for 'RELIANCE.NS' fetched successfully
+        status:
+          type: string
+          example: SUCCESS
+
+    AiVerdictResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/AiPrediction'
+        message:
+          type: string
+          example: AI recommendation verdict for 'RELIANCE.NS' fetched successfully
+        status:
+          type: string
+          example: SUCCESS
+

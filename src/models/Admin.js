@@ -1,3 +1,32 @@
-const Admin = require('../model/adminSchema');
+const mongoose = require('mongoose');
 
-module.exports = Admin;
+const adminSchema = new mongoose.Schema({
+  MID: {
+    type: String,
+    required: true,
+    unique: true,
+    validate: {
+      validator(value) {
+        return /^[a-zA-Z0-9]*$/.test(value);
+      },
+      message: 'ID must be alphanumeric.',
+    },
+  },
+  name: {
+    type: String,
+    required: true,
+    unique: false,
+  },
+  MPIN: {
+    type: String,
+    required: true,
+    unique: false,
+  },
+  role: {
+    type: String,
+    enum: ['admin', 'superadmin'],
+    default: 'admin',
+  },
+});
+
+module.exports = mongoose.models.Admin || mongoose.model('Admin', adminSchema);

@@ -7,8 +7,8 @@ const jwt = require('jsonwebtoken');
 
 const crypto = require('crypto');
 // const { log } = require('console');
-const citizenSchema = require('../model/adminSchema');
-const userSchema = require('../model/userSchema');
+const citizenSchema = require('../models/Admin');
+const userSchema = require('../models/User');
 
 // JWT Secret Key Generator
 const generateJWTSecret = () => crypto.randomBytes(32).toString('hex');

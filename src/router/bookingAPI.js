@@ -3,7 +3,7 @@
 const express = require('express');
 
 const router = express.Router();
-const Booking = require('../model/bookingSchema');
+const Booking = require('../models/Booking');
 const STATUS = require('../constants/statusConstants');
 
 // Create a new booking
