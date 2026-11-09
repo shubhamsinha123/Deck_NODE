@@ -15,7 +15,7 @@ const secretKey = generateJWTSecret();
 // // let globalArr = [];
 // const users = [{ id: '123', password: 'password123' }]; // Example user data
 const router = express.Router();
-const citizenSchema = require('../model/userSchema');
+const citizenSchema = require('../models/User');
 
 function verifyToken(req, res, next) {
   const bearerTokenHeader = req.headers.authorization;

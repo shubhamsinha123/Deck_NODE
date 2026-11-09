@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /* eslint-disable class-methods-use-this */
 /* eslint-disable consistent-return */
 const express = require('express');

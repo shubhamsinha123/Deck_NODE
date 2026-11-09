@@ -214,29 +214,16 @@ class AdminService {
 
   async getUsersData() {
     try {
-      const query = User.find({});
-      let userData;
-      if (query && typeof query.select === 'function') {
-        userData = await query.select('-password');
-      } else {
-        userData = await query;
-      }
-      if (Array.isArray(userData)) {
-        userData.sort((a, b) => {
-          const numA = parseInt(a.id, 10);
-          const numB = parseInt(b.id, 10);
+      const userData = await User.find({});
+      userData.sort((a, b) => {
+        const numA = parseInt(a.id, 10);
+        const numB = parseInt(b.id, 10);
 
-          if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
-            return numA - numB;
-          }
-          return (a.id || '').localeCompare(b.id || '');
-        });
-        return userData.map((u) => {
-          const obj = u.toObject ? u.toObject() : { ...(u._doc || u) };
-          delete obj.password;
-          return obj;
-        });
-      }
+        if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+          return numA - numB;
+        }
+        return a.id.localeCompare(b.id);
+      });
       return userData;
     } catch (error) {
       throw new AppError('Failed to fetch user data', 500);

@@ -3,7 +3,7 @@
 const express = require('express');
 
 const router = express.Router();
-const citizenSchema = require('../model/citizenSchema');
+const citizenSchema = require('../models/Citizen');
 // router.post("/post", async (req, res) => {
 //   try {
 //     const addCitizenShip = new citizenSchema(req.body);

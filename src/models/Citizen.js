@@ -1,3 +1,3 @@
-const Citizen = require('../model/citizenSchema');
+const User = require('./User');
 
-module.exports = Citizen;
+module.exports = User;

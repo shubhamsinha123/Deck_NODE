@@ -1,15 +1,5 @@
 /* eslint-disable class-methods-use-this */
-const mongoose = require('mongoose');
 const Blog = require('../models/Blog');
-
-const buildQuery = (identifier) => {
-  if (!identifier) return {};
-  const conditions = [{ 'author.name': identifier }, { title: identifier }];
-  if (mongoose.Types.ObjectId.isValid(identifier)) {
-    conditions.push({ _id: identifier });
-  }
-  return { $or: conditions };
-};
 
 class BlogService {
   async createBlog(blogData) {
@@ -18,21 +8,20 @@ class BlogService {
   }
 
   async getAllBlogs() {
-    return Blog.find({}).sort({ createdAt: -1 });
+    return Blog.find({});
   }
 
-  async getBlogByName(identifier) {
-    return Blog.findOne(buildQuery(identifier));
+  async getBlogByName(name) {
+    return Blog.findOne({ name });
   }
 
-  async updateBlogByName(identifier, updateData) {
-    return Blog.findOneAndUpdate(buildQuery(identifier), updateData, { new: true });
+  async updateBlogByName(name, updateData) {
+    return Blog.findOneAndUpdate({ name }, updateData, { new: true });
   }
 
-  async deleteBlogByName(identifier) {
-    return Blog.findOneAndDelete(buildQuery(identifier));
+  async deleteBlogByName(name) {
+    return Blog.findOneAndDelete({ name });
   }
 }
 
 module.exports = new BlogService();
-

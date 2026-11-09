@@ -3,7 +3,7 @@
 const express = require('express');
 
 const carRouter = express.Router();
-const carSchema = require('../model/carSchema');
+const carSchema = require('../models/Car');
 
 carRouter.post('/api/cars-post', async (req, res) => {
   try {

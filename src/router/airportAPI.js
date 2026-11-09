@@ -6,7 +6,7 @@ const airportAPI = express.Router();
 const jwt = require('jsonwebtoken');
 
 // const crypto = require('crypto');
-const airportSchema = require('../model/airportSchema');
+const airportSchema = require('../models/Airport');
 
 // JWT Secret Key Generator
 // const generateJWTSecret = () => crypto.randomBytes(32).toString('hex');

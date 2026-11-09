@@ -3,7 +3,7 @@
 const express = require('express');
 
 const countriesAPI = express.Router();
-const countrySchema = require('../model/countriesSchema');
+const countrySchema = require('../models/Country');
 
 countriesAPI.post('/addCountries', async (req, res) => {
   try {

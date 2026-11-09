@@ -70,7 +70,6 @@ class BlogController {
         req.params.name,
         req.body,
       );
-
       if (!updatedBlog) {
         return res.status(404).send({
           data: null,
@@ -78,18 +77,6 @@ class BlogController {
           status: STATUS.NOT_FOUND,
         });
       }
-
-      // ----------------- SOCKET REAL-TIME BROADCAST -----------------
-      if (req.io) {
-        // 1. Broadcast the updated chat to everyone currently viewing this blog's chat
-        req.io.to(req.params.name).emit('chat:updated', {
-          blogUser: req.params.name,
-          chat: updatedBlog.chat || [],
-        });
-        // 2. Broadcast to all clients so main blog cards update their comment counts
-        req.io.emit('blog:updated');
-      }
-      // -------------------------------------------------------------
       return res.status(200).send({
         data: updatedBlog,
         message: `Blog '${req.params.name}' updated successfully`,

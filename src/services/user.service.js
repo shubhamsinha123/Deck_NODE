@@ -184,16 +184,9 @@ class UserService {
   }
 
   async updateUserById(id, updateData) {
-    const isJsonPatch = Array.isArray(updateData);
-    const isPartialUpdate = updateData !== null
-      && typeof updateData === 'object'
-      && !isJsonPatch;
-    if (
-      (isJsonPatch && updateData.length === 0)
-      || (!isJsonPatch && (!isPartialUpdate || Object.keys(updateData).length === 0))
-    ) {
+    if (!Array.isArray(updateData) || updateData.length === 0) {
       throw new AppError(
-        'Invalid patch format. Expected a non-empty object of fields to update or a non-empty array of JSON Patch operations.',
+        'Invalid JSON patch format. Expected a non-empty array of patch operations: [{ op, path, value }]',
         400,
       );
     }
@@ -203,9 +196,7 @@ class UserService {
       if (!existingUser) return null;
 
       const userObj = existingUser.toObject ? existingUser.toObject() : { ...existingUser };
-      const patchedObj = isJsonPatch
-        ? applyJsonPatch(userObj, updateData).target
-        : { ...userObj, ...updateData };
+      const { target: patchedObj } = applyJsonPatch(userObj, updateData);
 
       if (patchedObj.playlists && !patchedObj.musicList) {
         patchedObj.musicList = patchedObj.playlists;

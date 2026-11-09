@@ -3,7 +3,7 @@
 const express = require('express');
 
 const priceAPI = express.Router();
-const priceSchema = require('../model/priceSchema');
+const priceSchema = require('../models/Price');
 // batch post
 priceAPI.post('/pricePost', async (req, res) => {
   try {
