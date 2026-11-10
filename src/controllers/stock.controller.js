@@ -96,6 +96,56 @@ class StockController {
   }
 
   /**
+   * GET /api/stocks/market-status or /api/market-status or /api/v1/market-status
+   * Live market session, today holiday detection & news channel insights (Livemint, ET, NDTV)
+   */
+  async getMarketStatus(req, res) {
+    try {
+      const fresh = req.query.fresh === 'true' || req.query.fresh === '1';
+      const status = await stockService.getMarketStatus({ fresh });
+      return res.status(200).send({
+        data: status,
+        message: status.is_holiday
+          ? `Indian stock market is CLOSED today for ${status.holiday_name}`
+          : `Indian stock market session: ${status.session}`,
+        status: STATUS.SUCCESS,
+      });
+    } catch (error) {
+      return res.status(500).send({
+        data: null,
+        message: error.message || 'Error fetching market status',
+        status: STATUS.ERROR,
+      });
+    }
+  }
+
+  /**
+   * GET /api/stocks/holidays or /api/holidays or /api/v1/holidays?year=2026
+   * Official NSE trading holiday calendar
+   */
+  async getNseHolidays(req, res) {
+    try {
+      const year = req.query.year || new Date().getFullYear();
+      const holidays = stockService.getNseHolidays(year);
+      return res.status(200).send({
+        data: {
+          year: Number(year),
+          count: holidays.length,
+          holidays,
+        },
+        message: `Official NSE trading holidays for ${year} fetched successfully`,
+        status: STATUS.SUCCESS,
+      });
+    } catch (error) {
+      return res.status(500).send({
+        data: null,
+        message: error.message || 'Error fetching NSE holiday calendar',
+        status: STATUS.ERROR,
+      });
+    }
+  }
+
+  /**
    * POST /api/stocks/refresh-nse-directory
    * Pull fresh official CSV from NSE portal and sync all stocks to MongoDB
    */
@@ -297,6 +347,14 @@ router.get('/api/stocks/refresh-nse-directory', ...allowAdminOnly, stockControll
 router.get('/api/stocks/indices', ...allowUserAndAdmin, stockController.getMajorIndices.bind(stockController));
 router.get('/api/indices', ...allowUserAndAdmin, stockController.getMajorIndices.bind(stockController));
 router.get('/api/v1/indices', ...allowUserAndAdmin, stockController.getMajorIndices.bind(stockController));
+
+router.get('/api/stocks/market-status', ...allowUserAndAdmin, stockController.getMarketStatus.bind(stockController));
+router.get('/api/market-status', ...allowUserAndAdmin, stockController.getMarketStatus.bind(stockController));
+router.get('/api/v1/market-status', ...allowUserAndAdmin, stockController.getMarketStatus.bind(stockController));
+
+router.get('/api/stocks/holidays', ...allowUserAndAdmin, stockController.getNseHolidays.bind(stockController));
+router.get('/api/holidays', ...allowUserAndAdmin, stockController.getNseHolidays.bind(stockController));
+router.get('/api/v1/holidays', ...allowUserAndAdmin, stockController.getNseHolidays.bind(stockController));
 
 router.get('/api/stocks/:symbol', ...allowUserAndAdmin, stockController.getStockBySymbol.bind(stockController));
 router.get('/api/v1/stocks/:symbol', ...allowUserAndAdmin, stockController.getStockBySymbol.bind(stockController));

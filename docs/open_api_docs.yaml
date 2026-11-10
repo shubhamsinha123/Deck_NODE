@@ -2884,6 +2884,118 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/stocks/market-status:
+    get:
+      tags: [stocks]
+      summary: Real-time market status, holiday detection, and financial news channel insights
+      description: Returns live Indian stock market session, whether today is an exchange holiday (with holiday name), and latest financial news headlines explaining market status from Livemint, Economic Times, NDTV Profit, Business Standard, etc.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: fresh
+          schema:
+            type: boolean
+          required: false
+          description: Set to true to bypass cache and fetch immediate live news insights.
+      responses:
+        '200':
+          description: Market status and holiday insights fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      session:
+                        type: string
+                        example: HOLIDAY
+                      is_live:
+                        type: boolean
+                        example: false
+                      is_holiday:
+                        type: boolean
+                        example: true
+                      holiday_name:
+                        type: string
+                        example: Diwali-Balipratipada
+                      message:
+                        type: string
+                        example: Indian stock exchanges (NSE/BSE) are closed today for Diwali-Balipratipada.
+                      news_insight:
+                        type: object
+                        properties:
+                          headline:
+                            type: string
+                          source:
+                            type: string
+                          link:
+                            type: string
+                      news_insights:
+                        type: array
+                        items:
+                          type: object
+                      upcoming_holidays:
+                        type: array
+                        items:
+                          type: object
+                  message:
+                    type: string
+                  status:
+                    type: string
+                    example: SUCCESS
+
+  /api/stocks/holidays:
+    get:
+      tags: [stocks]
+      summary: Official NSE trading holiday calendar
+      description: Returns the full schedule of official National Stock Exchange (NSE) trading holidays for the requested year.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: year
+          schema:
+            type: integer
+          default: 2026
+          description: Year to retrieve holidays for
+      responses:
+        '200':
+          description: NSE trading holiday calendar retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      year:
+                        type: integer
+                        example: 2026
+                      count:
+                        type: integer
+                        example: 19
+                      holidays:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date:
+                              type: string
+                              example: 2026-11-10
+                            day:
+                              type: string
+                              example: Tuesday
+                            name:
+                              type: string
+                              example: Diwali-Balipratipada
+                  status:
+                    type: string
+                    example: SUCCESS
+
 components:
   securitySchemes:
     bearerAuth:

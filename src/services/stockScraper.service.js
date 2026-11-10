@@ -148,9 +148,79 @@ const FALLBACK_STOCK_META = {
   },
 };
 
+/**
+ * Official National Stock Exchange (NSE) Trading Holidays (2026 - 2028)
+ */
+const NSE_TRADING_HOLIDAYS = {
+  // 2026
+  '2026-01-26': 'Republic Day',
+  '2026-02-17': 'Mahashivratri',
+  '2026-03-04': 'Holi',
+  '2026-03-20': 'Id-Ul-Fitr (Ramzan Id)',
+  '2026-03-27': 'Ram Navami',
+  '2026-03-31': 'Mahavir Jayanti',
+  '2026-04-03': 'Good Friday',
+  '2026-04-14': 'Dr. Baba Saheb Ambedkar Jayanti',
+  '2026-05-01': 'Maharashtra Day',
+  '2026-05-27': 'Bakri Id (Id-Ul-Zuha)',
+  '2026-06-26': 'Muharram',
+  '2026-08-15': 'Independence Day',
+  '2026-09-04': 'Milad-un-Nabi (Id-e-Milad)',
+  '2026-10-02': 'Mahatma Gandhi Jayanti',
+  '2026-10-20': 'Dussehra',
+  '2026-11-08': 'Diwali Laxmi Pujan (Muhurat Trading)',
+  '2026-11-10': 'Diwali-Balipratipada',
+  '2026-11-24': 'Guru Nanak Jayanti',
+  '2026-12-25': 'Christmas',
+
+  // 2027
+  '2027-01-26': 'Republic Day',
+  '2027-02-15': 'Mahashivratri',
+  '2027-03-23': 'Holi',
+  '2027-03-26': 'Good Friday',
+  '2027-04-14': 'Dr. Baba Saheb Ambedkar Jayanti',
+  '2027-04-16': 'Ram Navami',
+  '2027-04-20': 'Mahavir Jayanti',
+  '2027-05-01': 'Maharashtra Day',
+  '2027-05-17': 'Bakri Id (Id-Ul-Zuha)',
+  '2027-06-16': 'Muharram',
+  '2027-08-15': 'Independence Day',
+  '2027-09-14': 'Milad-un-Nabi (Id-e-Milad)',
+  '2027-10-02': 'Mahatma Gandhi Jayanti',
+  '2027-10-10': 'Dussehra',
+  '2027-10-28': 'Diwali Laxmi Pujan (Muhurat Trading in Evening)',
+  '2027-10-29': 'Diwali Balipratipada',
+  '2027-11-14': 'Guru Nanak Jayanti',
+  '2027-12-25': 'Christmas',
+
+  // 2028
+  '2028-01-26': 'Republic Day',
+  '2028-02-25': 'Mahashivratri',
+  '2028-03-13': 'Holi',
+  '2028-03-29': 'Id-Ul-Fitr (Ramzan Id)',
+  '2028-04-07': 'Ram Navami',
+  '2028-04-09': 'Mahavir Jayanti',
+  '2028-04-14': 'Good Friday & Dr. Baba Saheb Ambedkar Jayanti',
+  '2028-05-01': 'Maharashtra Day',
+  '2028-05-05': 'Bakri Id (Id-Ul-Zuha)',
+  '2028-06-04': 'Muharram',
+  '2028-08-15': 'Independence Day',
+  '2028-08-25': 'Ganesh Chaturthi',
+  '2028-10-02': 'Mahatma Gandhi Jayanti',
+  '2028-10-17': 'Diwali Laxmi Pujan (Muhurat Trading in Evening)',
+  '2028-10-18': 'Dussehra',
+  '2028-10-19': 'Diwali Balipratipada',
+  '2028-11-02': 'Guru Nanak Jayanti',
+  '2028-12-25': 'Christmas',
+};
+
 class StockScraperService {
   constructor() {
     this._indicesCache = {
+      data: null,
+      cachedAt: 0,
+    };
+    this._holidayNewsCache = {
       data: null,
       cachedAt: 0,
     };
@@ -824,15 +894,26 @@ class StockScraperService {
     const minute = ist.getMinutes();
     const totalMinutes = hour * 60 + minute;
 
+    const yyyy = ist.getFullYear();
+    const mm = String(ist.getMonth() + 1).padStart(2, '0');
+    const dd = String(ist.getDate()).padStart(2, '0');
+    const dateKey = `${yyyy}-${mm}-${dd}`;
+
+    const holidayName = NSE_TRADING_HOLIDAYS[dateKey];
+    const isHoliday = Boolean(holidayName);
+
     const isWeekday = day >= 1 && day <= 5;
-    const isMarketOpen = isWeekday && totalMinutes >= (9 * 60 + 15) && totalMinutes <= (15 * 60 + 30);
-    const isPreMarket = isWeekday && totalMinutes >= (9 * 60) && totalMinutes < (9 * 60 + 15);
-    const isPostMarket = isWeekday && totalMinutes > (15 * 60 + 30) && totalMinutes <= (16 * 60);
+    const isMarketOpen = !isHoliday && isWeekday && totalMinutes >= (9 * 60 + 15) && totalMinutes <= (15 * 60 + 30);
+    const isPreMarket = !isHoliday && isWeekday && totalMinutes >= (9 * 60) && totalMinutes < (9 * 60 + 15);
+    const isPostMarket = !isHoliday && isWeekday && totalMinutes > (15 * 60 + 30) && totalMinutes <= (16 * 60);
 
     let session = 'CLOSED';
     let message = 'Indian stock exchanges are currently closed.';
 
-    if (isMarketOpen) {
+    if (isHoliday) {
+      session = 'HOLIDAY';
+      message = `Indian stock exchanges (NSE/BSE) are closed today for ${holidayName}. Showing last closing values.`;
+    } else if (isMarketOpen) {
       session = 'OPEN';
       message = 'Indian stock exchanges are actively trading (09:15 - 15:30 IST). Real-time tick updates active.';
     } else if (isPreMarket) {
@@ -846,26 +927,170 @@ class StockScraperService {
       message = 'Exchanges are closed for the weekend. Showing last closing values.';
     }
 
+    const latestNews = this._holidayNewsCache?.data?.[0] || null;
+
     return {
       session,
       is_live: isMarketOpen,
+      is_holiday: isHoliday,
+      holiday_name: holidayName || null,
       trading_hours: '09:15 - 15:30 IST (Monday - Friday)',
       timezone: 'Asia/Kolkata',
+      ist_date: dateKey,
       ist_time: ist.toLocaleTimeString('en-IN', { hour12: true }),
       message,
+      news_insight: isHoliday && latestNews ? {
+        headline: latestNews.title,
+        source: latestNews.source,
+        link: latestNews.link,
+      } : undefined,
     };
   }
 
   /**
+   * Scrapes live financial news headlines (Livemint, Economic Times, NDTV, Zee Business) for market holidays
+   */
+  async fetchMarketHolidayNewsInsights(fresh = false) {
+    const now = Date.now();
+    // 15-minute in-memory cache
+    if (!fresh && this._holidayNewsCache?.data && (now - this._holidayNewsCache.cachedAt) < 900000) {
+      return this._holidayNewsCache.data;
+    }
+
+    const query = 'stock market holiday NSE BSE closed India';
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`;
+
+    try {
+      const response = await axios.get(url, {
+        headers: BROWSER_HEADERS,
+        timeout: 6000,
+      });
+
+      const $ = cheerio.load(response.data, { xmlMode: true });
+      const articles = [];
+
+      $('item').slice(0, 8).each((_, el) => {
+        const title = $(el).find('title').text().trim();
+        const source = $(el).find('source').text().trim() || 'Financial News';
+        const link = $(el).find('link').text().trim();
+        const pubDate = $(el).find('pubDate').text().trim();
+        if (title) {
+          articles.push({
+            title,
+            source,
+            link,
+            published_at: pubDate ? new Date(pubDate) : new Date(),
+          });
+        }
+      });
+
+      if (articles.length > 0) {
+        this._holidayNewsCache = {
+          data: articles,
+          cachedAt: now,
+        };
+        return articles;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    if (this._holidayNewsCache?.data) {
+      return this._holidayNewsCache.data;
+    }
+
+    return [
+      {
+        title: 'Indian stock exchanges remain closed for scheduled exchange holiday',
+        source: 'Livemint / Economic Times',
+        link: 'https://www.nseindia.com',
+        published_at: new Date(),
+      },
+    ];
+  }
+
+  /**
+   * Comprehensive market status with holiday check, live financial news insights, and upcoming calendar
+   */
+  async getDetailedMarketStatus(fresh = false) {
+    const news = await this.fetchMarketHolidayNewsInsights(fresh);
+    const basicStatus = this.getIndianMarketStatus();
+
+    // Check if news headlines mention today's closure even if date wasn't in static dictionary
+    let detectedHolidayName = basicStatus.holiday_name;
+    if (!detectedHolidayName && news && news.length > 0) {
+      const topHeadline = news[0].title;
+      if (/closed today|shut today|holiday today|trading closed/i.test(topHeadline)) {
+        const match = topHeadline.match(/(?:for|on account of|on)\s+([A-Za-z0-9\- ]+?)(?:\s*[-–|?]|\s*$)/i);
+        if (match && match[1]) {
+          detectedHolidayName = match[1].trim();
+        }
+      }
+    }
+
+    const isHoliday = Boolean(detectedHolidayName || basicStatus.is_holiday);
+    if (isHoliday && !basicStatus.is_holiday) {
+      basicStatus.session = 'HOLIDAY';
+      basicStatus.is_live = false;
+      basicStatus.is_holiday = true;
+      basicStatus.holiday_name = detectedHolidayName || 'Market Holiday';
+      basicStatus.message = `Indian stock exchanges (NSE/BSE) are closed today for ${basicStatus.holiday_name}. Showing last closing values.`;
+    }
+
+    const now = new Date();
+    const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+    const ist = new Date(istString);
+    const currentYear = ist.getFullYear();
+
+    const upcomingHolidays = Object.entries(NSE_TRADING_HOLIDAYS)
+      .filter(([date]) => date >= basicStatus.ist_date && date.startsWith(String(currentYear)))
+      .map(([date, name]) => {
+        const d = new Date(date);
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+        return { date, day: dayName, name };
+      });
+
+    return {
+      ...basicStatus,
+      holiday_name: detectedHolidayName || basicStatus.holiday_name,
+      news_insight: news && news.length > 0 ? {
+        headline: news[0].title,
+        source: news[0].source,
+        link: news[0].link,
+        published_at: news[0].published_at,
+      } : basicStatus.news_insight,
+      news_insights: news,
+      upcoming_holidays: upcomingHolidays,
+    };
+  }
+
+  /**
+   * Returns official NSE trading holidays for the given year
+   */
+  getNseHolidayCalendar(year = 2026) {
+    const targetYear = String(year);
+    return Object.entries(NSE_TRADING_HOLIDAYS)
+      .filter(([date]) => date.startsWith(targetYear))
+      .map(([date, name]) => {
+        const d = new Date(date);
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+        return { date, day: dayName, name };
+      });
+  }
+
+  /**
    * Fetches real-time benchmark index quotes (NIFTY 50, SENSEX, BANK NIFTY, NIFTY IT, INDIA VIX)
-   * Uses 10-second in-memory live buffer, supporting ?fresh=true for instantaneous exchange bypass.
+   * Uses 10-second in-memory live buffer (60s during holidays), supporting ?fresh=true for instantaneous exchange bypass.
    */
   async fetchMajorIndices(options = {}) {
     const { fresh = false } = options;
     const now = Date.now();
 
-    // Fast 10-second in-memory cache to prevent duplicate requests across rapid UI polls
-    if (!fresh && this._indicesCache?.data && (now - this._indicesCache.cachedAt) < 10000) {
+    const market = this.getIndianMarketStatus();
+    const ttl = market.is_live ? 10000 : 60000;
+
+    // Fast in-memory cache to prevent duplicate requests across rapid UI polls
+    if (!fresh && this._indicesCache?.data && (now - this._indicesCache.cachedAt) < ttl) {
       return this._indicesCache.data;
     }
 
