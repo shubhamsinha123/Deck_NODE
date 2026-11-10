@@ -405,6 +405,20 @@ class StockService {
   async getMajorIndices(options = {}) {
     return stockScraper.fetchMajorIndices(options);
   }
+
+  /**
+   * Comprehensive market status with holiday check & live news channel insights
+   */
+  async getMarketStatus(options = {}) {
+    return stockScraper.getDetailedMarketStatus(options.fresh);
+  }
+
+  /**
+   * Official NSE trading holiday calendar for a year
+   */
+  getNseHolidays(year) {
+    return stockScraper.getNseHolidayCalendar(year);
+  }
 }
 
 module.exports = new StockService();

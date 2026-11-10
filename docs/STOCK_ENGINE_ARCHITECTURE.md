@@ -345,6 +345,8 @@ Every response from a rate-limited endpoint includes:
 | `GET` | `/api/screen` | `user`, `admin` | 120 / min (User), 300 / min (Admin) | Quantitative multi-factor screener filtering equities by financial thresholds. |
 | `POST` | `/api/stocks/sync` | `user`, `admin` | **6 / min (User), 30 / min (Admin)** | Executes complete end-to-end ingestion, scraping, technical computation, and AI generation pipeline. |
 | `GET` | `/api/stocks/indices` | `user`, `admin` | 120 / min (User), 300 / min (Admin) | Real-time Indian benchmark indices: NIFTY 50, SENSEX, BANK NIFTY, NIFTY IT, INDIA VIX (10s cache). |
+| `GET` | `/api/stocks/market-status` | `user`, `admin` | 120 / min (User), 300 / min (Admin) | Live market session status, holiday detection (e.g. Diwali-Balipratipada) & financial news channel insights. |
+| `GET` | `/api/stocks/holidays` | `user`, `admin` | 120 / min (User), 300 / min (Admin) | Official annual National Stock Exchange (NSE) trading holiday calendar. |
 | `POST` | `/api/stocks/refresh-nse-directory` | **`admin` ONLY** | **30 / min (Admin)** | Downloads latest official `EQUITY_L.csv` from NSE portal and syncs directory entries. |
 
 ---
